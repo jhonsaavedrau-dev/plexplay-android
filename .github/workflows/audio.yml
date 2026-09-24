@@ -1,0 +1,25 @@
+name: Audio de PLEX PLAY
+on:
+  push:
+    branches: [main]
+    paths: ['audio-gen/**']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  audio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install edge-tts==7.2.8
+      - run: python audio-gen/gen.py
+      - run: cd out && zip -q -r ../audio-pack.zip . && cd .. && ls -l audio-pack.zip
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: audio-${{ github.run_number }}
+          name: Audio ${{ github.run_number }}
+          body: "Paquete de audio generado para la app web (no es una versión de la app)."
+          make_latest: false
+          files: audio-pack.zip

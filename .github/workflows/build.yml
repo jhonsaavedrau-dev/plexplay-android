@@ -2,6 +2,7 @@ name: APK de PLEX PLAY
 on:
   push:
     branches: [main]
+    paths-ignore: ['audio-gen/**', 'README.md']
   workflow_dispatch:
 permissions:
   contents: write
@@ -22,7 +23,7 @@ jobs:
           KS_PASS: ${{ secrets.KS_PASS }}
           KS_ALIAS: plexplay
           VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: 1.6.${{ github.run_number }}
+          VERSION_NAME: 1.7.${{ github.run_number }}
         run: gradle --no-daemon assembleRelease bundleRelease
       - name: Preparar archivos
         run: |
@@ -32,8 +33,8 @@ jobs:
           ls -l out
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.6.${{ github.run_number }}
-          name: PLEX PLAY 1.6.${{ github.run_number }}
+          tag_name: v1.7.${{ github.run_number }}
+          name: PLEX PLAY 1.7.${{ github.run_number }}
           body: "Descarga **PLEX-PLAY.apk** en tu celular Android e instálalo. El archivo .aab es para Google Play."
           make_latest: true
           files: |
