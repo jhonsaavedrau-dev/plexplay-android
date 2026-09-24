@@ -138,7 +138,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public boolean notificationsAllowed() {
             return Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
         }
-        @JavascriptInterface public int bridgeVersion() { return 3; }
+        @JavascriptInterface public int bridgeVersion() { return 4; }
+        @JavascriptInterface public String appVersion() { try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return "?"; } }
     }
 
     void micCallback(String status) { js("window.__plexMic&&window.__plexMic('" + status + "')"); }
