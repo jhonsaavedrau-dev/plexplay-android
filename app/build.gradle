@@ -1,0 +1,24 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'co.plexplay.app'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'co.plexplay.app'
+        minSdk 24
+        targetSdk 34
+        versionCode Integer.parseInt(System.getenv('VERSION_CODE') ?: '1')
+        versionName System.getenv('VERSION_NAME') ?: '1.6.0'
+    }
+    signingConfigs {
+        release {
+            storeFile file(System.getenv('KS_PATH') ?: 'release.jks')
+            storePassword System.getenv('KS_PASS')
+            keyAlias System.getenv('KS_ALIAS') ?: 'plexplay'
+            keyPassword System.getenv('KS_PASS')
+        }
+    }
+    buildTypes {
+        release { minifyEnabled false; signingConfig signingConfigs.release }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}

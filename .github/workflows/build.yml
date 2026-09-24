@@ -1,0 +1,41 @@
+name: APK de PLEX PLAY
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.9' }
+      - name: Firma
+        run: echo "${{ secrets.KS_B64 }}" | base64 -d > "$RUNNER_TEMP/release.jks"
+      - name: Compilar APK y AAB
+        env:
+          KS_PATH: ${{ runner.temp }}/release.jks
+          KS_PASS: ${{ secrets.KS_PASS }}
+          KS_ALIAS: plexplay
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 1.6.${{ github.run_number }}
+        run: gradle --no-daemon assembleRelease bundleRelease
+      - name: Preparar archivos
+        run: |
+          mkdir out
+          cp app/build/outputs/apk/release/app-release.apk out/PLEX-PLAY.apk
+          cp app/build/outputs/bundle/release/app-release.aab out/PLEX-PLAY.aab
+          ls -l out
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.6.${{ github.run_number }}
+          name: PLEX PLAY 1.6.${{ github.run_number }}
+          body: "Descarga **PLEX-PLAY.apk** en tu celular Android e instálalo. El archivo .aab es para Google Play."
+          make_latest: true
+          files: |
+            out/PLEX-PLAY.apk
+            out/PLEX-PLAY.aab
