@@ -16,6 +16,13 @@ jobs:
       - run: pip install edge-tts==7.2.8
       - run: python audio-gen/gen.py
       - run: cd out && zip -q -r ../audio-pack.zip . && cd .. && ls -l audio-pack.zip
+      - name: Publicar los mp3 en la rama audio-out
+        run: |
+          cd out
+          git init -q -b audio-out
+          git add -A
+          git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" commit -qm "Audio ${{ github.run_number }}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" audio-out
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: audio-${{ github.run_number }}
