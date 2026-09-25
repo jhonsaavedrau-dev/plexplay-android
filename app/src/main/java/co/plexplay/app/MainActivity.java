@@ -46,6 +46,8 @@ public class MainActivity extends Activity {
     String pendingLang = null;
     PermissionRequest pendingWebPerm = null;
     boolean gotResult = false;
+    ArrayList<String> lastPartial = null;
+    long lastRms = 0;
 
     @Override protected void onCreate(Bundle saved) {
         super.onCreate(saved);
@@ -135,10 +137,12 @@ public class MainActivity extends Activity {
             });
         }
         @JavascriptInterface public String reminder() { return Reminder.json(MainActivity.this); }
+        /** racha actual y último día con la meta cumplida: el recordatorio avisa «tu racha está en peligro» */
+        @JavascriptInterface public void setProgress(int streak, String lastDay, String name) { Reminder.progress(MainActivity.this, streak, lastDay, name); }
         @JavascriptInterface public boolean notificationsAllowed() {
             return Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
         }
-        @JavascriptInterface public int bridgeVersion() { return 4; }
+        @JavascriptInterface public int bridgeVersion() { return 5; }
         @JavascriptInterface public String appVersion() { try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return "?"; } }
     }
 
@@ -165,7 +169,7 @@ public class MainActivity extends Activity {
         try {
             if (rec != null) { rec.destroy(); rec = null; }
             rec = SpeechRecognizer.createSpeechRecognizer(this);
-            gotResult = false;
+            gotResult = false; lastPartial = null;
             rec.setRecognitionListener(new RecognitionListener() {
                 public void onResults(Bundle b) {
                     gotResult = true;
@@ -174,6 +178,8 @@ public class MainActivity extends Activity {
                 }
                 public void onError(int code) {
                     if (gotResult) return;
+                    // si ya se oyó parte de la frase, se usa aunque el reconocedor no la haya cerrado
+                    if (lastPartial != null && !lastPartial.isEmpty() && code != SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) { gotResult = true; speechResult(true, lastPartial, null); return; }
                     if (code == SpeechRecognizer.ERROR_NO_MATCH || code == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) { speechResult(false, null, "no-speech"); return; }
                     if (code == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) { speechResult(false, null, "not-allowed"); return; }
                     // servicio ocupado, sin idioma, cliente o servidor: probar con la ventana de voz de Google
@@ -181,10 +187,18 @@ public class MainActivity extends Activity {
                 }
                 public void onReadyForSpeech(Bundle b) { js("window.__plexSpeechState&&window.__plexSpeechState('ready')"); }
                 public void onBeginningOfSpeech() { js("window.__plexSpeechState&&window.__plexSpeechState('speaking')"); }
-                public void onRmsChanged(float v) {}
+                public void onRmsChanged(float v) {
+                    long now = System.currentTimeMillis(); if (now - lastRms < 90) return; lastRms = now;
+                    js("window.__plexSpeechLevel&&window.__plexSpeechLevel(" + Math.max(0f, Math.min(1f, (v + 2f) / 12f)) + ")");
+                }
                 public void onBufferReceived(byte[] b) {}
                 public void onEndOfSpeech() { js("window.__plexSpeechState&&window.__plexSpeechState('processing')"); }
-                public void onPartialResults(Bundle b) {}
+                public void onPartialResults(Bundle b) {
+                    ArrayList<String> p = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                    if (p == null || p.isEmpty() || p.get(0).trim().isEmpty()) return;
+                    lastPartial = p;
+                    js("window.__plexSpeechPartial&&window.__plexSpeechPartial(" + JSONObject.quote(p.get(0)) + ")");
+                }
                 public void onEvent(int t, Bundle b) {}
             });
             rec.startListening(speechIntent(L));
@@ -200,6 +214,11 @@ public class MainActivity extends Activity {
         i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, lang);
         i.putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, true);
         i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
+        i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+        // pausas cortas al leer no deben cortar la frase
+        i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2000L);
+        i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1600L);
+        i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1500L);
         i.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
         i.putExtra(RecognizerIntent.EXTRA_PROMPT, "Lee la frase en francés");
         return i;

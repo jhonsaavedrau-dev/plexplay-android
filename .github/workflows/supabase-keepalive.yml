@@ -1,0 +1,28 @@
+name: Mantener activo Supabase
+# Supabase (plan gratis) pausa el proyecto tras 7 días sin uso. Esta tarea lo visita cada día
+# para que nadie encuentre la app dormida, por ejemplo en vacaciones.
+on:
+  schedule:
+    - cron: '17 11 * * *'   # todos los días, 6:17 a. m. en Colombia
+  workflow_dispatch:
+permissions:
+  actions: write
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    env:
+      SB_URL: https://arjajiyotulnuzxkrddw.supabase.co
+      SB_ANON: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFyamFqaXlvdHVsbnV6eGtyZGR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxOTkyODQsImV4cCI6MjEwNTc3NTI4NH0.EWbXBm6F_5BFjzMAWecotetA-7SE3tyi3HFCvkW4px0   # clave pública (anon): es la misma que usa la app en el navegador
+    steps:
+      - name: Consultar la base de datos
+        run: |
+          set -e
+          code=$(curl -s -o /tmp/r.json -w "%{http_code}" "$SB_URL/rest/v1/allowed_emails?select=email&limit=1" -H "apikey: $SB_ANON" -H "Authorization: Bearer $SB_ANON")
+          echo "REST: $code"; cat /tmp/r.json; echo
+          auth=$(curl -s -o /dev/null -w "%{http_code}" "$SB_URL/auth/v1/health" -H "apikey: $SB_ANON")
+          echo "Auth: $auth"
+          if [ "$code" -ge 500 ] || [ "$code" = "000" ]; then echo "::error::Supabase no respondió ($code). Revisa si el proyecto está pausado."; exit 1; fi
+      - name: Evitar que GitHub desactive esta tarea por inactividad
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/supabase-keepalive.yml/enable" || true
