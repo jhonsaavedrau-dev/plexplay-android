@@ -2,7 +2,7 @@ name: APK de PLEX PLAY
 on:
   push:
     branches: [main]
-    paths-ignore: ['audio-gen/**', 'README.md']
+    paths-ignore: ['audio-gen/**', 'README.md', 'store/**']
   workflow_dispatch:
 permissions:
   contents: write
