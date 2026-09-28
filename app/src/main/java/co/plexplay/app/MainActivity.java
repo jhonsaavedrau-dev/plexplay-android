@@ -13,6 +13,7 @@ import android.provider.Settings;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
@@ -27,6 +28,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Locale;
 
 /**
  * PLEX PLAY: la app web (PWA) dentro de una WebView.
@@ -48,6 +50,9 @@ public class MainActivity extends Activity {
     boolean gotResult = false;
     ArrayList<String> lastPartial = null;
     long lastRms = 0;
+    /** voz francesa del teléfono: suena lo que no tiene mp3 (la WebView no trae voces para speechSynthesis) */
+    TextToSpeech tts;
+    boolean ttsOk = false;
 
     @Override protected void onCreate(Bundle saved) {
         super.onCreate(saved);
@@ -62,7 +67,7 @@ public class MainActivity extends Activity {
         s.setLoadWithOverviewMode(true);
         s.setUseWideViewPort(true);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
-        s.setUserAgentString(s.getUserAgentString() + " PlexPlayAndroid/4");
+        s.setUserAgentString(s.getUserAgentString() + " PlexPlayAndroid/6");
         CookieManager.getInstance().setAcceptCookie(true);
         web.addJavascriptInterface(new Bridge(), "PlexAndroid");
         web.setWebChromeClient(new WebChromeClient() {
@@ -91,6 +96,17 @@ public class MainActivity extends Activity {
         if (esRetorno(getIntent())) abrirRetorno(getIntent());
         else if (saved != null) web.restoreState(saved); else web.loadUrl(HOME);
         Reminder.schedule(this);
+        tts = new TextToSpeech(this, st -> {
+            if (st != TextToSpeech.SUCCESS || tts == null) return;
+            int r = tts.setLanguage(Locale.FRANCE);
+            if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) r = tts.setLanguage(Locale.FRENCH);
+            ttsOk = r != TextToSpeech.LANG_MISSING_DATA && r != TextToSpeech.LANG_NOT_SUPPORTED;
+        });
+    }
+
+    @Override protected void onDestroy() {
+        if (tts != null) { tts.stop(); tts.shutdown(); tts = null; }
+        super.onDestroy();
     }
 
     /* ---------- permisos ---------- */
@@ -143,7 +159,14 @@ public class MainActivity extends Activity {
         @JavascriptInterface public boolean notificationsAllowed() {
             return Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
         }
-        @JavascriptInterface public int bridgeVersion() { return 5; }
+        @JavascriptInterface public boolean ttsAvailable() { return ttsOk; }
+        @JavascriptInterface public void ttsSpeak(String text, float rate) {
+            if (!ttsOk || tts == null || text == null) return;
+            tts.setSpeechRate(rate > 0 ? rate : 0.95f);
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "plex");
+        }
+        @JavascriptInterface public void ttsStop() { if (tts != null) tts.stop(); }
+        @JavascriptInterface public int bridgeVersion() { return 6; }
         @JavascriptInterface public String appVersion() { try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return "?"; } }
     }
 
