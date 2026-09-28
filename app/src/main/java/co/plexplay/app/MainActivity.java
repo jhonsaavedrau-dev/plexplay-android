@@ -104,10 +104,6 @@ public class MainActivity extends Activity {
         });
     }
 
-    @Override protected void onDestroy() {
-        if (tts != null) { tts.stop(); tts.shutdown(); tts = null; }
-        super.onDestroy();
-    }
 
     /* ---------- permisos ---------- */
     boolean hasMic() { return checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED; }
@@ -318,5 +314,9 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onPause() { super.onPause(); CookieManager.getInstance().flush(); if (rec != null) rec.cancel(); }
-    @Override protected void onDestroy() { if (rec != null) rec.destroy(); super.onDestroy(); }
+    @Override protected void onDestroy() {
+        if (rec != null) rec.destroy();
+        if (tts != null) { tts.stop(); tts.shutdown(); tts = null; }
+        super.onDestroy();
+    }
 }
