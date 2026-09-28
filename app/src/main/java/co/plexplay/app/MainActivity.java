@@ -62,7 +62,7 @@ public class MainActivity extends Activity {
         s.setLoadWithOverviewMode(true);
         s.setUseWideViewPort(true);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
-        s.setUserAgentString(s.getUserAgentString() + " PlexPlayAndroid/3");
+        s.setUserAgentString(s.getUserAgentString() + " PlexPlayAndroid/4");
         CookieManager.getInstance().setAcceptCookie(true);
         web.addJavascriptInterface(new Bridge(), "PlexAndroid");
         web.setWebChromeClient(new WebChromeClient() {
@@ -88,7 +88,8 @@ public class MainActivity extends Activity {
                 if (r.isForMainFrame()) v.loadUrl("file:///android_asset/offline.html");
             }
         });
-        if (saved != null) web.restoreState(saved); else web.loadUrl(HOME);
+        if (esRetorno(getIntent())) abrirRetorno(getIntent());
+        else if (saved != null) web.restoreState(saved); else web.loadUrl(HOME);
         Reminder.schedule(this);
     }
 
@@ -262,6 +263,23 @@ public class MainActivity extends Activity {
         super.onResume();
         // al volver de Ajustes, avisar a la página si ya hay permiso
         if (web != null) micCallback(micStatus());
+    }
+
+    /* ---------- entrar con Google ----------
+       Google no deja iniciar sesión dentro de un WebView: la página abre el acceso en el navegador del teléfono
+       (shouldOverrideUrlLoading lo manda afuera) y, al terminar, Supabase vuelve a co.plexplay.app://auth con la
+       sesión en la dirección (#access_token=… o ?code=…). Aquí se abre la app con esa dirección y la página guarda la sesión. */
+    static final String RETORNO = "co.plexplay.app";
+    boolean esRetorno(Intent i) { Uri d = i == null ? null : i.getData(); return d != null && RETORNO.equals(d.getScheme()); }
+    void abrirRetorno(Intent i) {
+        Uri d = i.getData();
+        String q = d.getEncodedQuery(), f = d.getEncodedFragment();
+        web.loadUrl("https://" + HOST + "/portfolio-francais-c1-1/plexplay/index.html" + (q != null ? "?" + q : "") + (f != null ? "#" + f : ""));
+    }
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (esRetorno(intent) && web != null) abrirRetorno(intent);
     }
 
     @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); web.saveState(out); }

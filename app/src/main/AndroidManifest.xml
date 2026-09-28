@@ -23,7 +23,15 @@
             android:exported="true"
             android:launchMode="singleTask"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode|smallestScreenSize"
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustResize">
+            <!-- regreso del acceso con Google (co.plexplay.app://auth) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="co.plexplay.app" android:host="auth" />
+            </intent-filter>
+        </activity>
         <!-- entrada del lanzador con nombre nuevo: obliga al teléfono a usar el ícono de Manzana -->
         <activity-alias
             android:name=".Manzana"
