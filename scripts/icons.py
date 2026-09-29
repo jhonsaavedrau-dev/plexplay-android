@@ -1,7 +1,7 @@
 # Genera los íconos del lanzador (Manzana) a partir de la imagen publicada de la app web.
 import io, urllib.request
 from PIL import Image, ImageDraw
-SRC = "https://jhonsaavedrau-dev.github.io/portfolio-francais-c1-1/plexplay/icons/mz-maskable-512.png"
+SRC = "https://jhonsaavedrau-dev.github.io/plexplay/app/icons/mz-maskable-512.png"
 import os
 raw = open(os.environ["ICON_SRC"], "rb").read() if os.environ.get("ICON_SRC") else urllib.request.urlopen(SRC).read()
 src = Image.open(io.BytesIO(raw)).convert("RGBA")
