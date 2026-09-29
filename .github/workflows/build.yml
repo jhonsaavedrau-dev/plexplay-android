@@ -27,7 +27,7 @@ jobs:
           KS_PASS: ${{ secrets.KS_PASS }}
           KS_ALIAS: plexplay
           VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: 1.7.${{ github.run_number }}
+          VERSION_NAME: 2.0.${{ github.run_number }}
         run: gradle --no-daemon assembleRelease bundleRelease
       - name: Preparar archivos
         run: |
