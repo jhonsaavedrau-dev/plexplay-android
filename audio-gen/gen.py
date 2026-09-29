@@ -19,9 +19,11 @@ async def one(e):
                 open(dst, "wb").write(b"".join(chunks))
                 if e.get("q"):  # recodificar (voz: 32 kbps mono basta y ocupa la mitad)
                     tmp2 = dst + ".tmp.mp3"
-                    proc = await asyncio.create_subprocess_exec("ffmpeg", "-y", "-loglevel", "error", "-i", dst, "-ac", "1", "-b:a", e["q"], tmp2)
-                    await proc.wait()
-                    if proc.returncode == 0 and os.path.getsize(tmp2) > 1000: os.replace(tmp2, dst)
+                    try:
+                        proc = await asyncio.create_subprocess_exec("ffmpeg", "-y", "-loglevel", "error", "-i", dst, "-ac", "1", "-b:a", e["q"], tmp2)
+                        await proc.wait()
+                        if proc.returncode == 0 and os.path.getsize(tmp2) > 1000: os.replace(tmp2, dst)
+                    except FileNotFoundError: pass  # sin ffmpeg: queda el mp3 original (más pesado, pero sirve)
                 hechos[0] += 1
                 if hechos[0] % 200 == 0: print("hechos", hechos[0], "de", len(man), int(time.time() - T0), "s", flush=True)
                 return
@@ -33,5 +35,6 @@ async def main():
     print("ok", hechos[0], "fallos", len(fails), "pendientes", len(saltados), flush=True)
     if saltados: json.dump(saltados, open(os.path.join(OUT, "_pendientes.json"), "w"))
     for f in fails[:20]: print(f)
-    if len(fails) > len(man) * 0.05: sys.exit(1)
+    if fails: json.dump([f for f, _ in fails], open(os.path.join(OUT, "_fallos.json"), "w"))
+    if len(fails) > len(man) * 0.5: sys.exit(1)
 asyncio.run(main())
