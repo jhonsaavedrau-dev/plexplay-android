@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="navy">#0F2A5C</color>
+    <color name="icon_bg">#0B47AA</color>
     <style name="Theme.PlexPlay" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/navy</item>
         <item name="android:statusBarColor">@color/navy</item>
