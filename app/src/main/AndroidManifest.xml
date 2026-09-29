@@ -52,5 +52,14 @@
                 <action android:name="co.plexplay.app.RECORDATORIO" />
             </intent-filter>
         </receiver>
+        <!-- widgets de la pantalla de inicio -->
+        <receiver android:name=".Widget" android:exported="true" android:label="@string/widget_racha">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_racha_info" />
+        </receiver>
+        <receiver android:name=".Widget$Dia" android:exported="true" android:label="@string/widget_dia">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_dia_info" />
+        </receiver>
     </application>
 </manifest>

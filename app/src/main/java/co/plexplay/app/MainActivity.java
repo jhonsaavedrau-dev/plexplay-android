@@ -2,6 +2,7 @@ package co.plexplay.app;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.NotificationManager;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -43,6 +44,9 @@ public class MainActivity extends Activity {
     static final String HOST = "jhonsaavedrau-dev.github.io";
     static final String HOME = "https://" + HOST + "/portfolio-francais-c1-1/plexplay/?src=android";
     static final int REQ_MIC = 11, REQ_NOTIF = 12, REQ_SPEECH = 13, REQ_MIC_ONLY = 14;
+    /** abierta desde «Practicar» (notificación o widget): al cargar, la página abre la siguiente lección */
+    static final String EXTRA_PRACTICAR = "practicar";
+    boolean practicarPendiente = false;
     WebView web;
     SpeechRecognizer rec;
     String pendingLang = null;
@@ -89,13 +93,18 @@ public class MainActivity extends Activity {
                 try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception e) { /* sin app para abrirlo */ }
                 return true;
             }
+            @Override public void onPageFinished(WebView v, String url) {
+                if (practicarPendiente && url != null && url.startsWith("https:")) { practicarPendiente = false; practicar(2500); }
+            }
             @Override public void onReceivedError(WebView v, WebResourceRequest r, WebResourceError e) {
                 if (r.isForMainFrame()) v.loadUrl("file:///android_asset/offline.html");
             }
         });
+        practicarPendiente = getIntent() != null && getIntent().getBooleanExtra(EXTRA_PRACTICAR, false);
         if (esRetorno(getIntent())) abrirRetorno(getIntent());
         else if (saved != null) web.restoreState(saved); else web.loadUrl(HOME);
         Reminder.schedule(this);
+        Widget.updateAll(this);
         tts = new TextToSpeech(this, st -> {
             if (st != TextToSpeech.SUCCESS || tts == null) return;
             int r = tts.setLanguage(Locale.FRANCE);
@@ -162,7 +171,9 @@ public class MainActivity extends Activity {
             tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "plex");
         }
         @JavascriptInterface public void ttsStop() { if (tts != null) tts.stop(); }
-        @JavascriptInterface public int bridgeVersion() { return 6; }
+        /** datos del widget y de los avisos (plx68.js): racha, XP de hoy, meta, palabra del día… */
+        @JavascriptInterface public void setWidget(String json) { if (json != null) Widget.save(MainActivity.this, json); }
+        @JavascriptInterface public int bridgeVersion() { return 7; }
         @JavascriptInterface public String appVersion() { try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return "?"; } }
     }
 
@@ -299,6 +310,13 @@ public class MainActivity extends Activity {
         super.onNewIntent(intent);
         setIntent(intent);
         if (esRetorno(intent) && web != null) abrirRetorno(intent);
+        else if (intent.getBooleanExtra(EXTRA_PRACTICAR, false) && web != null) practicar(300);
+    }
+
+    /** abre la siguiente lección (la página define window.__plexPracticar en plx68.js) */
+    void practicar(long delay) {
+        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(1);
+        web.postDelayed(() -> web.evaluateJavascript("window.__plexPracticar&&window.__plexPracticar()", null), delay);
     }
 
     @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); web.saveState(out); }

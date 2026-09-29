@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_racha">Racha</string>
+    <string name="widget_racha_desc">Tu racha de días y si ya cumpliste la meta de hoy.</string>
+    <string name="widget_dia">Mi día de francés</string>
+    <string name="widget_dia_desc">Racha, XP de hoy, palabra del día y un botón para practicar.</string>
+</resources>
