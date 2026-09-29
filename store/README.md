@@ -47,8 +47,8 @@ PLEX PLAY es un proyecto personal de un estudiante de la licenciatura. No es una
 
 **Categoría:** Educación · **Etiquetas:** Aprendizaje de idiomas, Educación
 **Correo de contacto:** jhon.saavedra@unipamplona.edu.co
-**Sitio web:** https://jhonsaavedrau-dev.github.io/portfolio-francais-c1-1/plexplay/
-**Política de privacidad:** https://jhonsaavedrau-dev.github.io/portfolio-francais-c1-1/plexplay/privacy.html
+**Sitio web:** https://jhonsaavedrau-dev.github.io/plexplay/app/
+**Política de privacidad:** https://jhonsaavedrau-dev.github.io/plexplay/app/privacy.html
 
 **Gráficos** (carpeta `graficos/`):
 - Ícono 512 × 512: `icono-512.png`

@@ -42,7 +42,7 @@ import java.util.Locale;
  */
 public class MainActivity extends Activity {
     static final String HOST = "jhonsaavedrau-dev.github.io";
-    static final String HOME = "https://" + HOST + "/portfolio-francais-c1-1/plexplay/?src=android";
+    static final String HOME = "https://" + HOST + "/plexplay/app/?src=android";
     static final int REQ_MIC = 11, REQ_NOTIF = 12, REQ_SPEECH = 13, REQ_MIC_ONLY = 14;
     /** abierta desde «Practicar» (notificación o widget): al cargar, la página abre la siguiente lección */
     static final String EXTRA_PRACTICAR = "practicar";
@@ -304,7 +304,7 @@ public class MainActivity extends Activity {
     void abrirRetorno(Intent i) {
         Uri d = i.getData();
         String q = d.getEncodedQuery(), f = d.getEncodedFragment();
-        web.loadUrl("https://" + HOST + "/portfolio-francais-c1-1/plexplay/index.html" + (q != null ? "?" + q : "") + (f != null ? "#" + f : ""));
+        web.loadUrl("https://" + HOST + "/plexplay/app/index.html" + (q != null ? "?" + q : "") + (f != null ? "#" + f : ""));
     }
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
