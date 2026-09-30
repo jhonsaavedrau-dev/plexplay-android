@@ -18,7 +18,7 @@ import java.util.Locale;
 
 /**
  * Widgets de la pantalla de inicio, con Manzana pintado (cambia de pose según tu día):
- *  - Racha (2×2): días de racha, los últimos 7 días y el estado de hoy.
+ *  - Racha (2×2), al estilo Duolingo: fondo, pose y mensaje de Manzana según la hora y tu racha (ver estado).
  *  - Mi día (4×2): racha, barra de XP de hoy, palabra del día y el botón «Practicar».
  *  - Palabra del día (4×1): la palabra, su traducción y un ejemplo.
  *  - Continúa tu curso (4×1): la siguiente lección y «Empezar».
@@ -48,6 +48,8 @@ public class Widget extends AppWidgetProvider {
              .putString("name", o.optString("name", ""))
              .putString("course", o.optString("course", ""))
              .putString("next", o.optString("next", ""))
+             .putString("aviso", o.optString("aviso", ""))
+             .putBoolean("hay", o.optBoolean("hay", o.optInt("streak", 0) > 0 || !o.optString("lastAny", "").isEmpty()))
              .putString("fr", o.optString("fr", "")).putString("es", o.optString("es", "")).putString("ex", o.optString("ex", ""))
              .putBoolean("paused", false);   // abrió la app: los avisos vuelven a su ritmo normal
             if (o.optBoolean("done", false)) e.putString("last", o.optString("day", ""));
@@ -69,41 +71,87 @@ public class Widget extends AppWidgetProvider {
     static boolean doneToday(SharedPreferences p) { return day(0).equals(p.getString("last", "")); }
     static int xpToday(SharedPreferences p) { return day(0).equals(p.getString("xpDay", "")) ? p.getInt("xp", 0) : 0; }
 
+    /* ---- Racha al estilo Duolingo: la misma tabla que la app (web/app/js/plx71.js → estado) ---- */
+    static class Estado {
+        String id, fondo, mz, msg; int num; String lbl; boolean fantasma, apagada, oscuro;
+        Estado(String id, String fondo, String mz, String msg, int num, String lbl) { this.id = id; this.fondo = fondo; this.mz = mz; this.msg = msg; this.num = num; this.lbl = lbl;
+            oscuro = fondo.equals("oro") || fondo.equals("amanecer") || fondo.equals("hielo"); }
+    }
+    static final int[] HITOS = { 3, 7, 10, 14, 21, 30, 50, 75, 100, 150, 200, 250, 300, 365, 500, 730, 1000 };
+    static boolean esHito(int n) { for (int h : HITOS) if (h == n) return true; return n > 0 && n % 100 == 0; }
+    static final String[][] CELEBRA = {
+        { "fuego", "racha-fuego", "¡Racha encendida!" }, { "cielo", "celebra", "¡Meta de hoy cumplida!" }, { "noche", "feliz", "Hoy brillaste ✨" },
+        { "verde", "guino-pulgar", "¡Así se hace!" }, { "lila", "croissant-boina", "Bien joué ! 🥐" }, { "atardecer", "bandera", "Vive la racha !" },
+        { "rosa", "tumbado-corazon", "Manzana está orgulloso" } };
+
+    /** días desde el último día con actividad (0 = hoy, -1 = nunca) */
+    static int diasDesde(SharedPreferences p) {
+        String u = p.getString("lastAny", ""); if (u.isEmpty()) u = p.getString("last", "");
+        if (u.isEmpty()) return -1;
+        for (int i = 0; i < 800; i++) if (u.equals(day(-i))) return i;
+        return 800;
+    }
+
+    static Estado estado(SharedPreferences p) {
+        int n = streakNow(p), xp = xpToday(p), meta = Math.max(1, p.getInt("goal", 20)), h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        boolean hecho = doneToday(p), hay = p.getBoolean("hay", false) || n > 0 || !p.getString("last", "").isEmpty();
+        String racha = n == 1 ? "día de racha" : "días de racha";
+        if (!p.getString("aviso", "").isEmpty()) return new Estado("mantenimiento", "gris", "lupa", "Manzana está ordenando cosas. Vuelve en un ratito", n, racha);
+        if (!hay) return new Estado("hola", "lila", "saluda", "¡Hola! Soy Manzana. Empecemos una racha", 0, "días de racha");
+        if (hecho) {
+            if (esHito(n)) return new Estado("hito", "oro", n >= 100 ? "graduado" : "trofeo", "¡" + n + " días de racha! 🏆", n, racha);
+            String[] k = CELEBRA[Calendar.getInstance().get(Calendar.DAY_OF_YEAR) % CELEBRA.length];
+            return new Estado("hecho", k[0], k[1], k[2], n, racha);
+        }
+        int falta = Math.max(0, meta - xp);
+        if (n > 0) {
+            if (xp > 0) return new Estado("casi", "cielo", "corre", "Te faltan " + falta + " XP. ¡Ya casi!", n, racha);
+            if (h < 12) return new Estado("tres", "amanecer", "taza-cafe", "¿Tienes 3 minutos?", n, racha);
+            if (h < 18) return new Estado("hora", "cielo", "escribe", "Hora de practicar", n, racha);
+            if (h < 21) return new Estado("salva", "fuego", "alerta", "¡Salva tu racha!", n, racha);
+            if (h < 23) return new Estado("tarde", "noche", "examen-susto", "¡Es tarde! Aún puedes salvarla", n, racha);
+            return new Estado("ultima", "alerta", "sorpresa", "¡Última oportunidad!", n, racha);
+        }
+        if (xp > 0) return new Estado("casi0", "verde", "corre", "Te faltan " + falta + " XP para una racha nueva", 0, racha);
+        int d = diasDesde(p);
+        String sin = d == 1 ? "día sin practicar" : "días sin practicar";
+        Estado e;
+        if (d >= 2 && d <= 3) e = new Estado("dias", "gris", "pensando", d + " días desde tu última lección", d, sin);
+        else if (d >= 4 && d <= 7) { e = new Estado("ignora", "noche", "duda", "¿Me estás ignorando? 👻", d, sin); e.fantasma = true; e.apagada = true; }
+        else if (d >= 8 && d <= 20) e = new Estado("extrana", "lila", "ovillo", "Manzana te extraña", d, sin);
+        else if (d > 20) { e = new Estado("congelada", "hielo", "dormido", "Tu racha se congeló. ¡Descongélala! ❄️", d, sin); e.apagada = true; }
+        else if (h >= 22) e = new Estado("zzz", "noche", "dormido", "Zzz… ¿una lección antes de dormir?", 0, racha);
+        else e = new Estado("empieza", "cielo", "senala-arriba", "Empieza una lección", 0, racha);
+        return e;
+    }
+
     static PendingIntent open(Context c, boolean practicar, int code) {
         Intent i = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         if (practicar) i.putExtra(MainActivity.EXTRA_PRACTICAR, true);
         return PendingIntent.getActivity(c, code, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
-    static final int[] PUNTOS = { R.id.w_d1, R.id.w_d2, R.id.w_d3, R.id.w_d4, R.id.w_d5, R.id.w_d6, R.id.w_d7 };
-
+    
     static void updateAll(Context c) {
         AppWidgetManager m = AppWidgetManager.getInstance(c);
         SharedPreferences p = c.getSharedPreferences(PREFS, 0);
         int streak = streakNow(p), xp = xpToday(p), goal = Math.max(1, p.getInt("goal", 20));
         boolean done = doneToday(p);
-        String dias = streak == 1 ? "día de racha" : "días de racha";
-        String estado = done ? "✓ Meta cumplida" : streak > 0 ? "¡Sálvala hoy!" : "Empieza hoy";
-        /* Manzana: celebra si ya cumpliste, duerme si la racha está en peligro, saluda si empiezas */
-        int mz = done ? R.drawable.w_mz_fuego : streak > 0 ? R.drawable.w_mz_duerme : R.drawable.w_mz_saluda;
 
+        Estado st = estado(p);
         for (int id : m.getAppWidgetIds(new ComponentName(c, Widget.class))) {
             RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_racha);
-            v.setImageViewResource(R.id.w_fuego, done ? R.drawable.ic_flame : R.drawable.ic_flame_off);
-            v.setImageViewResource(R.id.w_mz, mz);
-            v.setTextViewText(R.id.w_num, String.valueOf(streak));
-            v.setTextViewText(R.id.w_lbl, dias);
-            v.setTextViewText(R.id.w_est, estado);
-            v.setInt(R.id.w_est, "setBackgroundResource", done ? R.drawable.widget_chip_ok : R.drawable.widget_chip);
-            /* los últimos 7 días: el último punto es hoy (lleno si ya cumpliste, anillo si falta) */
-            int llenos = Math.min(streak, 7);
-            for (int k = 0; k < 7; k++) {
-                int desdeHoy = 6 - k;   // 0 = hoy
-                boolean hoy = desdeHoy == 0, lleno;
-                if (done) lleno = desdeHoy < llenos;
-                else lleno = !hoy && desdeHoy <= Math.min(streak, 6);
-                v.setImageViewResource(PUNTOS[k], lleno ? R.drawable.widget_dot_on : hoy ? R.drawable.widget_dot_hoy : R.drawable.widget_dot_off);
-            }
+            v.setInt(R.id.w_root, "setBackgroundResource", c.getResources().getIdentifier("wr_" + st.fondo, "drawable", c.getPackageName()));
+            int mzId = c.getResources().getIdentifier("w_rz_" + st.mz.replace('-', '_'), "drawable", c.getPackageName());
+            v.setImageViewResource(R.id.w_mz, mzId != 0 ? mzId : R.drawable.w_rz_sentado);
+            v.setInt(R.id.w_mz, "setImageAlpha", st.fantasma ? 125 : 255);
+            v.setTextViewText(R.id.w_msg, st.msg);
+            v.setImageViewResource(R.id.w_fuego, st.apagada ? R.drawable.ic_flame_off : R.drawable.ic_flame);
+            v.setTextViewText(R.id.w_num, String.valueOf(st.num));
+            v.setTextViewText(R.id.w_lbl, st.lbl);
+            int tinta = st.oscuro ? 0xFF3A2600 : 0xFFFFFFFF;
+            v.setTextColor(R.id.w_num, tinta);
+            v.setTextColor(R.id.w_lbl, st.oscuro ? 0xE63A2600 : 0xF2FFFFFF);
             v.setOnClickPendingIntent(R.id.w_root, open(c, !done, 21));
             m.updateAppWidget(id, v);
         }
