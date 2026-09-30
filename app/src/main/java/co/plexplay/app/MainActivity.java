@@ -41,8 +41,10 @@ import java.util.Locale;
  *  3. si falla o no existe: la ventana de voz de Google (RecognizerIntent), que funciona en casi todos los teléfonos.
  */
 public class MainActivity extends Activity {
-    static final String HOST = "jhonsaavedrau-dev.github.io";
-    static final String HOME = "https://" + HOST + "/plexplay/app/?src=android";
+    /* la app vive en plexplay.app (Cloudflare Pages); la dirección vieja de GitHub Pages sigue sirviendo lo mismo */
+    static final String HOST = "plexplay.app";
+    static final String HOST_VIEJO = "jhonsaavedrau-dev.github.io";
+    static final String HOME = "https://" + HOST + "/app/?src=android";
     static final int REQ_MIC = 11, REQ_NOTIF = 12, REQ_SPEECH = 13, REQ_MIC_ONLY = 14;
     /** abierta desde «Practicar» (notificación o widget): al cargar, la página abre la siguiente lección */
     static final String EXTRA_PRACTICAR = "practicar";
@@ -91,7 +93,7 @@ public class MainActivity extends Activity {
                 Uri u = r.getUrl();
                 /* entrar.html (acceso con Google desde la página de PLEX PLAY) se abre en el navegador: Google no deja entrar en un WebView */
                 boolean entrar = u.getPath() != null && u.getPath().endsWith("/entrar.html");
-                if ("https".equals(u.getScheme()) && HOST.equals(u.getHost()) && !entrar) return false;
+                if ("https".equals(u.getScheme()) && (HOST.equals(u.getHost()) || HOST_VIEJO.equals(u.getHost())) && !entrar) return false;
                 try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception e) { /* sin app para abrirlo */ }
                 return true;
             }
@@ -306,7 +308,7 @@ public class MainActivity extends Activity {
     void abrirRetorno(Intent i) {
         Uri d = i.getData();
         String q = d.getEncodedQuery(), f = d.getEncodedFragment();
-        web.loadUrl("https://" + HOST + "/plexplay/app/index.html" + (q != null ? "?" + q : "") + (f != null ? "#" + f : ""));
+        web.loadUrl("https://" + HOST + "/app/index.html" + (q != null ? "?" + q : "") + (f != null ? "#" + f : ""));
     }
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
