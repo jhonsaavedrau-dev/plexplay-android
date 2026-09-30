@@ -2,7 +2,7 @@
 
 ## Estado (30 de septiembre de 2026)
 
-La app **PLEX PLAY: francés A1 a C1** (paquete `co.plexplay.app`) ya está creada en Play Console, gratis, categoría Educación.
+La app **PLEX PLAY: aprende idiomas** (paquete `co.plexplay.app`) ya está creada en Play Console, gratis, categoría Educación.
 
 **Hecho en Play Console:** configuración de la tienda (categoría y contacto), política de privacidad, anuncios (no), público objetivo (18+),
 ID de publicidad (no), app gubernamental (no), funciones financieras (ninguna), salud (ninguna), clasificación de contenido (IARC),
@@ -18,15 +18,15 @@ seguridad de los datos, y los textos de la ficha (guardados como borrador).
 
 ## 1. Ficha de la tienda (Store listing)
 
-**Nombre de la app** (máx. 30): `PLEX PLAY: francés A1 a C1`
+**Nombre de la app** (máx. 30): `PLEX PLAY: aprende idiomas`
 
 **Descripción breve** (máx. 80):
-`Francés de A1 a C1 con lecciones, minijuegos, rachas y Manzana, tu gato.`
+`Aprende idiomas jugando con Manzana. Hoy: francés de A1 a C1.`
 
 **Descripción completa** (máx. 4000):
 
 ```
-PLEX PLAY es una app gratuita para aprender y practicar francés de A1 a C1, acompañado por Manzana, un gato con boina que te anima cada día. Nació para los estudiantes de Lenguas Extranjeras y sigue sus cursos semestre a semestre, pero cualquiera que quiera aprender francés puede usarla.
+PLEX PLAY es una app gratuita para aprender idiomas jugando, con Manzana, un gato con boina que te anima cada día. Hoy puedes aprender francés de A1 a C1: nació para los estudiantes de Lenguas Extranjeras y sigue sus cursos semestre a semestre, pero cualquiera puede usarla.
 
 LECCIONES DE TU CURSO
 • Desde Primeros pasos hasta C1: gramática, conjugación, vocabulario, fonética, texto académico, cultura y literatura.
@@ -50,8 +50,6 @@ PARA DOCENTES
 • Panel docente: crea clases con un código, sigue el avance de cada estudiante, asigna tareas y publica avisos.
 
 Sin publicidad y sin compras. Entras con tu cuenta de Google.
-
-PLEX PLAY es un proyecto independiente creado por un estudiante de Lenguas Extranjeras. No es una app oficial de ninguna universidad.
 ```
 
 **Categoría:** Educación · **Correo de contacto:** jhonsaavedrau@gmail.com · **Sitio web:** https://plexplay.app

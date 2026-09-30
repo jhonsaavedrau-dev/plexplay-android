@@ -16,7 +16,7 @@ CHROME = Path(os.environ["LOCALAPPDATA"]) / "ms-playwright" / "chromium-1234" / 
 
 # archivo crudo, nombre final, línea 1, línea 2 (resaltada), color de fondo claro, oscuro
 PIEZAS = [
-    ("t-1-inicio", "captura-1-inicio", "Tu francés de A1 a C1,", "en tu bolsillo", "#2B5BD7", "#0B2D74"),
+    ("t-1-inicio", "captura-1-inicio", "Aprende idiomas", "jugando", "#2B5BD7", "#0B2D74"),
     ("t-2-aprender", "captura-2-lecciones", "Tu curso completo,", "unidad por unidad", "#1CA0E8", "#0B4F9C"),
     ("t-6-runner", "captura-3-juegos", "Aprende corriendo", "con Manzana", "#7A5CF0", "#3B1F9E"),
     ("t-7-racha", "captura-4-racha", "Practica un poco", "cada día", "#FF8A1F", "#C2410C"),
