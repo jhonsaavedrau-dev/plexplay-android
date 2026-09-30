@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="widget_racha">Racha</string>
-    <string name="widget_racha_desc">Tu racha de días y si ya cumpliste la meta de hoy.</string>
+    <string name="widget_racha_desc">Tu racha, los últimos 7 días y Manzana según cómo vas hoy.</string>
     <string name="widget_dia">Mi día de francés</string>
     <string name="widget_dia_desc">Racha, XP de hoy, palabra del día y un botón para practicar.</string>
+    <string name="widget_palabra">Palabra del día</string>
+    <string name="widget_palabra_desc">Una palabra en francés cada día, con su traducción y un ejemplo.</string>
+    <string name="widget_leccion">Continúa tu curso</string>
+    <string name="widget_leccion_desc">Tu siguiente lección, lista para empezar con un toque.</string>
+    <string name="widget_meta">Meta de hoy</string>
+    <string name="widget_meta_desc">Los XP de hoy contra tu meta diaria.</string>
 </resources>

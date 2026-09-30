@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Continúa tu curso (4x1, crece a 4x2): la siguiente lección y un botón para empezarla -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/widget_bg_lila" android:gravity="center_vertical" android:orientation="horizontal" android:padding="10dp">
+    <ImageView android:id="@+id/w_mz" android:layout_width="72dp" android:layout_height="match_parent" android:adjustViewBounds="true"
+        android:contentDescription="Manzana" android:scaleType="fitCenter" android:src="@drawable/w_mz_gafas" />
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginLeft="10dp" android:layout_weight="1" android:orientation="vertical">
+        <TextView android:id="@+id/w_curso" android:layout_width="wrap_content" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1"
+            android:text="CONTINÚA TU CURSO" android:textColor="#FF7C5CFF" android:textSize="9sp" android:textStyle="bold" />
+        <TextView android:id="@+id/w_next" android:layout_width="wrap_content" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="2"
+            android:text="Tu siguiente lección" android:textColor="#FF0F1B3D" android:textSize="15sp" android:textStyle="bold" />
+        <TextView android:id="@+id/w_btn" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:background="@drawable/widget_btn_azul"
+            android:paddingLeft="12dp" android:paddingTop="4dp" android:paddingRight="12dp" android:paddingBottom="4dp"
+            android:text="▶ Empezar" android:textColor="#FFFFFFFF" android:textSize="12sp" android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>

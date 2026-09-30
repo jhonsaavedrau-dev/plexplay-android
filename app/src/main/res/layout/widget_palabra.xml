@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Palabra del día (4x1, crece a 4x2): Manzana con su croissant, la palabra, su traducción y un ejemplo -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/widget_bg_crema" android:gravity="center_vertical" android:orientation="horizontal" android:padding="10dp">
+    <ImageView android:id="@+id/w_mz" android:layout_width="72dp" android:layout_height="match_parent" android:adjustViewBounds="true"
+        android:contentDescription="Manzana" android:scaleType="fitCenter" android:src="@drawable/w_mz_croissant" />
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginLeft="10dp" android:layout_weight="1" android:orientation="vertical">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="PALABRA DEL DÍA" android:textColor="#FF1E5BD7" android:textSize="9sp" android:textStyle="bold" />
+        <TextView android:id="@+id/w_fr" android:layout_width="wrap_content" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1"
+            android:text="le quotidien" android:textColor="#FF0B2D74" android:textSize="20sp" android:textStyle="bold" />
+        <TextView android:id="@+id/w_es" android:layout_width="wrap_content" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1"
+            android:text="el día a día" android:textColor="#FF56608A" android:textSize="13sp" />
+        <TextView android:id="@+id/w_ex" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:ellipsize="end"
+            android:maxLines="2" android:textColor="#FF7A6A4F" android:textSize="11sp" android:textStyle="italic" android:visibility="gone" />
+    </LinearLayout>
+</LinearLayout>

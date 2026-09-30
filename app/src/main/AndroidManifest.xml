@@ -61,5 +61,17 @@
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_dia_info" />
         </receiver>
+        <receiver android:name=".Widget$Palabra" android:exported="true" android:label="@string/widget_palabra">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_palabra_info" />
+        </receiver>
+        <receiver android:name=".Widget$Leccion" android:exported="true" android:label="@string/widget_leccion">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_leccion_info" />
+        </receiver>
+        <receiver android:name=".Widget$Meta" android:exported="true" android:label="@string/widget_meta">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_meta_info" />
+        </receiver>
     </application>
 </manifest>

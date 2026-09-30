@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@android:id/background">
-        <shape android:shape="rectangle"><corners android:radius="4dp" /><solid android:color="#33FFFFFF" /></shape>
+        <shape android:shape="rectangle"><corners android:radius="6dp" /><solid android:color="#33FFFFFF" /></shape>
     </item>
     <item android:id="@android:id/progress">
-        <clip><shape android:shape="rectangle"><corners android:radius="4dp" /><solid android:color="#FFFFB020" /></shape></clip>
+        <clip><shape android:shape="rectangle"><corners android:radius="6dp" /><gradient android:angle="0" android:startColor="#FFFFD200" android:endColor="#FFFFB020" /></shape></clip>
     </item>
 </layer-list>
