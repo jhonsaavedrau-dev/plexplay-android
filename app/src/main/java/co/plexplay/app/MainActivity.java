@@ -71,7 +71,7 @@ public class MainActivity extends Activity {
         s.setLoadWithOverviewMode(true);
         s.setUseWideViewPort(true);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
-        s.setUserAgentString(s.getUserAgentString() + " PlexPlayAndroid/6");
+        s.setUserAgentString(s.getUserAgentString() + " PlexPlayAndroid/7");
         CookieManager.getInstance().setAcceptCookie(true);
         web.addJavascriptInterface(new Bridge(), "PlexAndroid");
         web.setWebChromeClient(new WebChromeClient() {
@@ -89,7 +89,9 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
                 Uri u = r.getUrl();
-                if ("https".equals(u.getScheme()) && HOST.equals(u.getHost())) return false;
+                /* entrar.html (acceso con Google desde la página de PLEX PLAY) se abre en el navegador: Google no deja entrar en un WebView */
+                boolean entrar = u.getPath() != null && u.getPath().endsWith("/entrar.html");
+                if ("https".equals(u.getScheme()) && HOST.equals(u.getHost()) && !entrar) return false;
                 try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception e) { /* sin app para abrirlo */ }
                 return true;
             }
