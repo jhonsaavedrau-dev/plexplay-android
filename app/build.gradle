@@ -8,7 +8,11 @@ android {
         targetSdk 35
         versionCode Integer.parseInt(System.getenv('VERSION_CODE') ?: '1')
         versionName System.getenv('VERSION_NAME') ?: '2.0.0'
+        // AdMob (anuncios con recompensa): por defecto los IDs de PRUEBA de Google; los reales llegan como secretos
+        manifestPlaceholders = [admobApp: System.getenv('ADMOB_APP') ?: 'ca-app-pub-3940256099942544~3347511713']
+        buildConfigField 'String', 'ADMOB_PREMIADO', '"' + (System.getenv('ADMOB_PREMIADO') ?: 'ca-app-pub-3940256099942544/5224354917') + '"'
     }
+    buildFeatures { buildConfig true }
     signingConfigs {
         release {
             storeFile file(System.getenv('KS_PATH') ?: 'release.jks')
@@ -21,4 +25,7 @@ android {
         release { minifyEnabled false; signingConfig signingConfigs.release }
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies {
+    implementation 'com.google.android.gms:play-services-ads:23.6.0'
 }

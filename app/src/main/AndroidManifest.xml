@@ -18,6 +18,8 @@
         android:allowBackup="true"
         android:supportsRtl="true"
         android:theme="@style/Theme.PlexPlay">
+        <!-- AdMob: el ID de la app viene de app/build.gradle (prueba por defecto) -->
+        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="${admobApp}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

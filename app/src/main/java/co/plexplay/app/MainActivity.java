@@ -59,6 +59,8 @@ public class MainActivity extends Activity {
     /** voz francesa del teléfono: suena lo que no tiene mp3 (la WebView no trae voces para speechSynthesis) */
     TextToSpeech tts;
     boolean ttsOk = false;
+    /** anuncios con recompensa (AdMob): se crean solo cuando la página pide uno */
+    Anuncios anuncios;
 
     @Override protected void onCreate(Bundle saved) {
         super.onCreate(saved);
@@ -177,7 +179,14 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void ttsStop() { if (tts != null) tts.stop(); }
         /** datos del widget y de los avisos (plx68.js): racha, XP de hoy, meta, palabra del día… */
         @JavascriptInterface public void setWidget(String json) { if (json != null) Widget.save(MainActivity.this, json); }
-        @JavascriptInterface public int bridgeVersion() { return 7; }
+        /** anuncio con recompensa: lo pide la página (plx102.js) cuando quien juega toca «Ver anuncio» */
+        @JavascriptInterface public void anuncioRecompensa(String motivo) {
+            runOnUiThread(() -> {
+                if (anuncios == null) anuncios = new Anuncios(MainActivity.this, visto -> js("window.__plxAnuncio&&window.__plxAnuncio(" + visto + ")"));
+                anuncios.mostrar();
+            });
+        }
+        @JavascriptInterface public int bridgeVersion() { return 8; }
         @JavascriptInterface public String appVersion() { try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return "?"; } }
     }
 
