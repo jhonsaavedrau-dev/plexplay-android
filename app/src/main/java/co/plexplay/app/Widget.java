@@ -68,6 +68,7 @@ public class Widget extends AppWidgetProvider {
             if (o.has("freeze")) e.putInt("freeze", o.optInt("freeze", 0));
             if (o.has("recN")) e.putInt("recN", o.optInt("recN", 0)).putString("recHasta", o.optString("recHasta", ""));
             if (o.has("dias")) e.putString("dias", o.optJSONObject("dias") != null ? o.optJSONObject("dias").toString() : "{}");
+            if (o.has("avRacha")) e.putBoolean("avRacha", o.optBoolean("avRacha", true)).putBoolean("avRec", o.optBoolean("avRec", true)).putBoolean("avVolver", o.optBoolean("avVolver", true));
             if (o.has("copas")) e.putInt("copas", o.optInt("copas", 0)).putString("rango", o.optString("rango", "")).putInt("duelosG", o.optInt("duelosG", 0));
             boolean done = o.optBoolean("done", false);
             if (done) e.putString("last", o.optString("day", ""));
@@ -196,11 +197,14 @@ public class Widget extends AppWidgetProvider {
     }
 
     /** abre la app; destino: "" (inicio), "practicar" (la siguiente lección), "racha", "palabra", "1v1", "avisos" */
-    static PendingIntent abrir(Context c, String destino, int code) {
+    static PendingIntent abrir(Context c, String destino, int code) { return abrir(c, destino, code, null); }
+    /** con aviso: el id del aviso de la bandeja, que se marca leído al abrirlo (MainActivity.leeAviso) */
+    static PendingIntent abrir(Context c, String destino, int code, String aviso) {
         Intent i = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP)
             .setAction("co.plexplay.app.ABRIR." + code);   // la acción distinta evita que Android junte los PendingIntent
         if ("practicar".equals(destino) || "leccion".equals(destino)) i.putExtra(MainActivity.EXTRA_PRACTICAR, true);
         else if (destino != null && !destino.isEmpty()) i.putExtra(MainActivity.EXTRA_DESTINO, destino);
+        if (aviso != null) i.putExtra(MainActivity.EXTRA_AVISO, aviso);
         return PendingIntent.getActivity(c, code, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
     static PendingIntent open(Context c, boolean practicar, int code) { return abrir(c, practicar ? "practicar" : "", code); }

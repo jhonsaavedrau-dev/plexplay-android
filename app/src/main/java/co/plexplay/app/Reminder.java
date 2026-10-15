@@ -118,9 +118,14 @@ public class Reminder extends BroadcastReceiver {
         if (t.getTimeInMillis() <= System.currentTimeMillis() + 30000) t.add(Calendar.DAY_OF_YEAR, 1);
         return t.getTimeInMillis();
     }
-    /** una sola vez, y aunque el teléfono esté en reposo (no necesita el permiso de alarmas exactas) */
+    /** una sola vez y a su hora. Probado en el emulador (dumpsys alarm): setAndAllowWhileIdle a 15 h de distancia
+     *  queda con una ventana de 1 hora (el de las 21:30 podía llegar a las 22:30). Ahora: exacta si el teléfono deja
+     *  (permiso «Alarmas y recordatorios»); si no, con una ventana de 10 minutos, que Android sí respeta sin permiso. */
     static void alarma(AlarmManager am, int tipo, long t, PendingIntent p) {
-        if (Build.VERSION.SDK_INT >= 23) am.setAndAllowWhileIdle(tipo, t, p); else am.set(tipo, t, p);
+        boolean exacta = Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms();
+        if (exacta && Build.VERSION.SDK_INT >= 23) am.setExactAndAllowWhileIdle(tipo, t, p);
+        else if (Build.VERSION.SDK_INT >= 19) am.setWindow(tipo, t, 10 * 60000L, p);
+        else am.set(tipo, t, p);
     }
 
     static void canales(Context c) {
@@ -173,13 +178,15 @@ public class Reminder extends BroadcastReceiver {
         if (Widget.doneToday(p)) return null;                 // ya cumplió la meta hoy: no hace falta recordarle nada
         if (p.getBoolean("paused", false)) return null;       // se calló tras una semana; vuelve cuando abra la app
         int streak = Widget.streakNow(p), away = Widget.diasDesde(p), xp = Widget.xpToday(p);
-        if (noche) return streak >= 1 ? new Aviso("ultima", pick(ULTIMA, 0), "leccion", CH_RACHA) : null;
+        // lo que la persona eligió en Ajustes de avisos (plx117): racha en peligro, recuperar la racha, volver a estudiar
+        boolean avRacha = p.getBoolean("avRacha", true), avRec = p.getBoolean("avRec", true), avVolver = p.getBoolean("avVolver", true);
+        if (noche) return streak >= 1 && avRacha ? new Aviso("ultima", pick(ULTIMA, 0), "leccion", CH_RACHA) : null;
         if (xp > 0) return new Aviso("casi", pick(CASI, 0), "leccion", streak >= 1 ? CH_RACHA : CH);
-        if (streak >= 1) return Widget.protegida(p) ? new Aviso("protegida", pick(PROTEGIDA, 0), "leccion", CH_RACHA)
+        if (streak >= 1 && avRacha) return Widget.protegida(p) ? new Aviso("protegida", pick(PROTEGIDA, 0), "leccion", CH_RACHA)
                                                     : new Aviso("racha", pick(RACHA, 0), "leccion", CH_RACHA);
-        if (Widget.recuperable(p) > 0) return new Aviso("recupera", pick(RECUPERA, 0), "racha", CH_RACHA);
-        if (away >= 7) return new Aviso("semana", pick(SEMANA, 0), "leccion", CH);
-        if (away >= 2) return new Aviso("extrana", pick(EXTRANA, 0), "leccion", CH);
+        if (streak < 1 && Widget.recuperable(p) > 0 && avRec) return new Aviso("recupera", pick(RECUPERA, 0), "racha", CH_RACHA);
+        if (away >= 7) return !avVolver ? null : new Aviso("semana", pick(SEMANA, 0), "leccion", CH);
+        if (away >= 2) return !avVolver ? null : new Aviso("extrana", pick(EXTRANA, 0), "leccion", CH);
         if (p.getInt("streak", 0) > 0 || away == 1) return new Aviso("perdida", pick(PERDIDA, 0), "leccion", CH);
         String fr = p.getString("fr", ""), es = p.getString("es", ""), dia = DIA[(int) ((System.currentTimeMillis() / 86400000L) % DIA.length)];
         return fr.isEmpty() ? new Aviso("dia", new String[]{"PLEX PLAY", dia}, "leccion", CH)
@@ -219,31 +226,33 @@ public class Reminder extends BroadcastReceiver {
         String name = p.getString("name", ""), hasta = Widget.recuperaHasta(p);
         String title = fill(av.titulo, streak, falta, name, rota, hasta), text = fill(av.texto, streak, falta, name, rota, hasta);
         canales(c);
+        // en la bandeja primero: su id viaja en el toque, así abrir el aviso lo marca leído
+        String id = guardar(c, av.tipo, title, text, av.destino);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, av.canal) : new Notification.Builder(c);
         b.setSmallIcon(R.drawable.ic_notif).setContentTitle(title).setContentText(text)
          .setStyle(new Notification.BigTextStyle().bigText(text))
-         .setContentIntent(Widget.abrir(c, av.destino, 30)).setAutoCancel(true).setColor(0xFF2F6BFF)
+         .setContentIntent(Widget.abrir(c, av.destino, 30, id)).setAutoCancel(true).setColor(0xFF2F6BFF)
          .setCategory(Notification.CATEGORY_REMINDER).setShowWhen(true).setWhen(System.currentTimeMillis());
         if (Build.VERSION.SDK_INT < 26) b.setPriority(CH_RACHA.equals(av.canal) ? Notification.PRIORITY_HIGH : Notification.PRIORITY_DEFAULT);
         Bitmap manzana = BitmapFactory.decodeResource(c.getResources(), Widget.poseAviso(c, av.tipo));
         if (manzana != null) b.setLargeIcon(manzana);
         String btn = "racha".equals(av.destino) ? "🩹 Recuperar" : "▶ Practicar";
-        b.addAction(new Notification.Action.Builder(null, btn, Widget.abrir(c, "racha".equals(av.destino) ? "racha" : "practicar", 31)).build());
+        b.addAction(new Notification.Action.Builder(null, btn, Widget.abrir(c, "racha".equals(av.destino) ? "racha" : "practicar", 31, id)).build());
         if (snooze) b.addAction(new Notification.Action.Builder(null, "⏰ En 1 hora", pi(c, ACT_SNOOZE, 32)).build());
-        guardar(c, av.tipo, title, text, av.destino);
         try { nm.notify(NOTIF, b.build()); } catch (SecurityException e) { /* sin permiso de notificaciones */ }
     }
 
     /* ---------- bandeja: lo que se avisó, para mostrarlo en la app con leído/no leído ---------- */
-    static synchronized void guardar(Context c, String tipo, String ti, String tx, String destino) {
+    static synchronized String guardar(Context c, String tipo, String ti, String tx, String destino) {
         SharedPreferences p = c.getSharedPreferences(PREFS, 0);
+        long t = System.currentTimeMillis();
         try {
             JSONArray viejo = new JSONArray(p.getString("avisos", "[]")), nuevo = new JSONArray();
-            long t = System.currentTimeMillis();
             nuevo.put(new JSONObject().put("id", "a" + t).put("t", t).put("tipo", tipo).put("ti", ti).put("tx", tx).put("d", destino).put("leido", false));
             for (int k = 0; k < viejo.length() && nuevo.length() < MAX_AVISOS; k++) nuevo.put(viejo.get(k));
             p.edit().putString("avisos", nuevo.toString()).putLong("ultimoAviso", t).apply();
         } catch (Exception e) { /* bandeja dañada: se empieza de nuevo */ p.edit().putString("avisos", "[]").apply(); }
+        return "a" + t;
     }
     static String avisos(Context c) { return c.getSharedPreferences(PREFS, 0).getString("avisos", "[]"); }
     /** id = uno; "*" = todos */

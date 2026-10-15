@@ -50,6 +50,9 @@ public class MainActivity extends Activity {
     static final String EXTRA_PRACTICAR = "practicar";
     /** 1.8: abierta desde un aviso o un widget que lleva a una pantalla concreta: racha, palabra, 1v1, avisos */
     static final String EXTRA_DESTINO = "destino";
+    /** el aviso de la bandeja que se tocó: queda leído */
+    static final String EXTRA_AVISO = "aviso";
+    void leeAviso(Intent i) { String a = i == null ? null : i.getStringExtra(EXTRA_AVISO); if (a != null) { Reminder.leido(this, a); i.removeExtra(EXTRA_AVISO); } }
     String destinoPendiente = null;
     boolean practicarPendiente = false;
     WebView web;
@@ -115,6 +118,7 @@ public class MainActivity extends Activity {
         });
         practicarPendiente = getIntent() != null && getIntent().getBooleanExtra(EXTRA_PRACTICAR, false);
         destinoPendiente = getIntent() != null ? getIntent().getStringExtra(EXTRA_DESTINO) : null;
+        leeAviso(getIntent());
         if (esRetorno(getIntent())) abrirRetorno(getIntent());
         else if (saved != null) web.restoreState(saved); else web.loadUrl(inicio());
         /* lo que no hace falta para pintar la página va después: antes el widget (5 dibujos), el recordatorio y el motor
@@ -213,9 +217,12 @@ public class MainActivity extends Activity {
             });
         }
         @JavascriptInterface public void ajustesNotificaciones() { runOnUiThread(MainActivity.this::ajustesNotif); }
-        /** solo en la versión de pruebas: muestra ya el aviso que tocaría (para revisar textos, botones y destinos) */
+        /** «Enviarme un aviso de prueba» de Ajustes de avisos: muestra ya el aviso que tocaría, con sus botones y su destino
+         *  (así cada quien comprueba que el permiso y el canal funcionan). Como mucho uno cada 10 segundos. */
         @JavascriptInterface public boolean probarAviso(String tipo) {
-            if (!esPrueba()) return false;
+            long t = System.currentTimeMillis();
+            if (t - prefs().getLong("pruebaT", 0) < 10000) return false;
+            prefs().edit().putLong("pruebaT", t).apply();
             sendBroadcast(new Intent(MainActivity.this, Reminder.class).setAction(Reminder.ACT_TEST).putExtra("tipo", tipo == null ? "" : tipo));
             return true;
         }
@@ -358,6 +365,7 @@ public class MainActivity extends Activity {
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        leeAviso(intent);
         if (esRetorno(intent) && web != null) abrirRetorno(intent);
         else if (intent.getBooleanExtra(EXTRA_PRACTICAR, false) && web != null) practicar(300);
         else if (intent.getStringExtra(EXTRA_DESTINO) != null && web != null) destino(intent.getStringExtra(EXTRA_DESTINO), 300);
