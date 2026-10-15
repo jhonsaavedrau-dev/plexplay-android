@@ -162,7 +162,7 @@ public class Widget extends AppWidgetProvider {
         for (int id : m.getAppWidgetIds(new ComponentName(c, Dia.class))) {
             RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_dia);
             v.setImageViewResource(R.id.w_fuego, done ? R.drawable.ic_flame : R.drawable.ic_flame_off);
-            v.setImageViewResource(R.id.w_mz, done ? R.drawable.w_mz_trofeo : R.drawable.w_mz_escribe);
+            v.setImageViewResource(R.id.w_mz, done ? R.drawable.w_mz_celebra : R.drawable.w_mz_estudia);
             v.setTextViewText(R.id.w_hola, name.isEmpty() ? "Bonjour !" : "Bonjour, " + name + " !");
             v.setTextViewText(R.id.w_num, String.valueOf(streak));
             v.setTextViewText(R.id.w_lbl, streak == 1 ? "día" : "días");
@@ -200,7 +200,7 @@ public class Widget extends AppWidgetProvider {
 
         for (int id : m.getAppWidgetIds(new ComponentName(c, Meta.class))) {
             RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_meta);
-            v.setImageViewResource(R.id.w_mz, done ? R.drawable.w_mz_trofeo : R.drawable.w_mz_celular);
+            v.setImageViewResource(R.id.w_mz, done ? R.drawable.w_mz_celebra : R.drawable.w_mz_vamos);
             v.setTextViewText(R.id.w_xp, String.valueOf(Math.min(xp, 9999)));
             v.setTextViewText(R.id.w_goal, "de " + goal + " XP");
             v.setProgressBar(R.id.w_barra, goal, Math.min(xp, goal), false);

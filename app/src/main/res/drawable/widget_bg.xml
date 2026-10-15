@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- noche de PLEX PLAY: azul profundo con brillo azul rey -->
+<!-- azul de marca de PLEX PLAY (identidad 4.3), con el degradado suave de los carteles de la app -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
     <corners android:radius="26dp" />
-    <gradient android:angle="135" android:startColor="#FF0B2D74" android:centerColor="#FF123C95" android:endColor="#FF1E5BD7" />
+    <gradient android:angle="135" android:startColor="#FF1A45B8" android:centerColor="#FF2760EE" android:endColor="#FF2F6BFF" />
 </shape>

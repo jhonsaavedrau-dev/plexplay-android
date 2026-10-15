@@ -4,7 +4,7 @@
     android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent"
     android:background="@drawable/widget_bg" android:gravity="center_vertical" android:orientation="horizontal" android:padding="12dp">
     <ImageView android:id="@+id/w_mz" android:layout_width="104dp" android:layout_height="match_parent" android:adjustViewBounds="true"
-        android:contentDescription="Manzana" android:scaleType="fitCenter" android:src="@drawable/w_mz_escribe" />
+        android:contentDescription="Manzana" android:scaleType="fitCenter" android:src="@drawable/w_mz_estudia" />
     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginLeft="10dp" android:layout_weight="1" android:orientation="vertical">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
             <TextView android:id="@+id/w_hola" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:ellipsize="end" android:maxLines="1"
@@ -25,13 +25,13 @@
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp"
             android:text="PALABRA DEL DÍA" android:textColor="#99FFFFFF" android:textSize="9sp" android:textStyle="bold" />
         <TextView android:id="@+id/w_fr" android:layout_width="wrap_content" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1"
-            android:text="le quotidien" android:textColor="#FFFFD200" android:textSize="17sp" android:textStyle="bold" />
+            android:text="le quotidien" android:textColor="#FFFFFFFF" android:textSize="17sp" android:textStyle="bold" />
         <TextView android:id="@+id/w_es" android:layout_width="wrap_content" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1"
             android:text="el día a día" android:textColor="#DDFFFFFF" android:textSize="12sp" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:gravity="center_vertical" android:orientation="horizontal">
             <TextView android:id="@+id/w_btn" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/widget_btn"
                 android:paddingLeft="14dp" android:paddingTop="5dp" android:paddingRight="14dp" android:paddingBottom="5dp"
-                android:text="▶ Practicar" android:textColor="#FF0B2D74" android:textSize="13sp" android:textStyle="bold" />
+                android:text="▶ Practicar" android:textColor="#FF1F2430" android:textSize="13sp" android:textStyle="bold" />
             <TextView android:id="@+id/w_next" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginLeft="8dp" android:layout_weight="1"
                 android:ellipsize="end" android:maxLines="1" android:textColor="#99FFFFFF" android:textSize="10sp" android:visibility="gone" />
         </LinearLayout>
