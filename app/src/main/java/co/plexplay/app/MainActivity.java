@@ -64,6 +64,9 @@ public class MainActivity extends Activity {
         super.onCreate(saved);
         web = new WebView(this);
         web.setBackgroundColor(0xFF0F2A5C);
+        /* rendimiento (4.47): el motor de la página es lo más importante de la app; que Android no lo trate como un
+           proceso de fondo cuando hay poca memoria */
+        if (Build.VERSION.SDK_INT >= 26) web.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true);
         setContentView(web);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -107,8 +110,13 @@ public class MainActivity extends Activity {
         practicarPendiente = getIntent() != null && getIntent().getBooleanExtra(EXTRA_PRACTICAR, false);
         if (esRetorno(getIntent())) abrirRetorno(getIntent());
         else if (saved != null) web.restoreState(saved); else web.loadUrl(HOME);
-        Reminder.schedule(this);
-        Widget.updateAll(this);
+        /* lo que no hace falta para pintar la página va después: antes el widget (5 dibujos), el recordatorio y el motor
+           de voz se preparaban en el hilo principal mientras la WebView arrancaba */
+        web.postDelayed(() -> { if (isFinishing()) return; Reminder.schedule(this); Widget.updateAll(this); iniciaVoz(); }, 2500);
+    }
+
+    void iniciaVoz() {
+        if (tts != null) return;
         tts = new TextToSpeech(this, st -> {
             if (st != TextToSpeech.SUCCESS || tts == null) return;
             int r = tts.setLanguage(Locale.FRANCE);
@@ -295,6 +303,8 @@ public class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        /* 4.47: la página vuelve a correr (se pausa en onPause) */
+        if (web != null) { web.onResume(); web.resumeTimers(); }
         // al volver de Ajustes, avisar a la página si ya hay permiso
         if (web != null) micCallback(micStatus());
     }
@@ -328,14 +338,20 @@ public class MainActivity extends Activity {
     @Override public void onBackPressed() {
         String u = web.getUrl();
         if (u != null && u.startsWith("file:")) { web.loadUrl(HOME); return; }
-        web.evaluateJavascript("(function(){try{var t=document.querySelector('.tour [data-tour=skip],.tour [data-tour=lessons]');if(t){t.click();return 'tour';}"
+        /* la página (plx101, 4.45) sabe cerrar lo que esté encima: juego (pausa), Quiz, diagnóstico, ventanas, lección… */
+        web.evaluateJavascript("(function(){try{if(window.__plexAtras&&window.__plexAtras())return 'capa';}catch(e){}try{var t=document.querySelector('.tour [data-tour=skip],.tour [data-tour=lessons]');if(t){t.click();return 'tour';}"
             + "var m=document.querySelector('.gmodal [data-g=close],.gmodal .gm-x');if(m){m.click();return 'modal';}"
             + "if(typeof P!=='undefined'&&P&&typeof closePlayer==='function'){closePlayer();return 'player';}"
             + "if(typeof view!=='undefined'&&view!=='parcours'&&typeof go==='function'){go('parcours');return 'home';}}catch(e){}return 'exit';})()",
             r -> { if ("\"exit\"".equals(r)) { if (web.canGoBack()) web.goBack(); else finish(); } });
     }
 
-    @Override protected void onPause() { super.onPause(); CookieManager.getInstance().flush(); if (rec != null) rec.cancel(); }
+    /* 4.47: antes la página seguía corriendo con la app cerrada (Manzana 3D, animaciones, temporizadores): gastaba batería,
+       calentaba el teléfono y lo volvía lento. Ahora se pausa del todo hasta volver. */
+    @Override protected void onPause() {
+        super.onPause(); CookieManager.getInstance().flush(); if (rec != null) rec.cancel();
+        if (web != null) { web.onPause(); web.pauseTimers(); }
+    }
     @Override protected void onDestroy() {
         if (rec != null) rec.destroy();
         if (tts != null) { tts.stop(); tts.shutdown(); tts = null; }
