@@ -13,6 +13,9 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
@@ -20,26 +23,36 @@ import java.util.Locale;
 /**
  * Avisos de Manzana, al estilo de las apps de idiomas (sin servidor, todo en el teléfono):
  *  - a la hora elegida, si todavía no cumplió la meta de hoy;
- *  - el mensaje cambia según la situación: racha en peligro, le falta poco para la meta, perdió la racha,
- *    lleva días sin practicar (2-3, 4-6, 7+) o un día normal (con la palabra del día);
- *  - a las 21:30, «última oportunidad» solo si hay una racha que salvar;
- *  - botones «Practicar» (abre la siguiente lección) y «En 1 hora» (lo vuelve a recordar);
+ *  - el mensaje cambia según la situación: racha en peligro, racha salvada por el protector, le falta poco para la meta,
+ *    racha que todavía se puede recuperar, racha perdida, días sin practicar (2-6, 7+) o un día normal (palabra del día);
+ *  - a las 21:30, «última oportunidad» solo si hay una racha que salvar (canal «Racha en peligro», más insistente);
+ *  - botones «Practicar» (abre la siguiente lección, o la pantalla de la racha) y «En 1 hora» (lo vuelve a recordar);
  *  - tras una semana sin abrir la app, un último aviso y se calla hasta que vuelva (sin insistir).
  * Si ya cumplió la meta hoy, no molesta. Sobrevive a reinicios y actualizaciones.
+ *
+ * 1.8 (15-oct-2026): antes las alarmas eran «inexactas repetidas», que Android puede retrasar horas (llegaban tarde o
+ * se juntaban con la del día siguiente). Ahora cada alarma es de una sola vez con setAndAllowWhileIdle (llega en su
+ * minuto aunque el teléfono esté en reposo) y se vuelve a programar al sonar. Cada aviso queda en una bandeja
+ * («avisos», JSON) que la página muestra con leído/no leído; al abrir la app el aviso del sistema se retira.
  */
 public class Reminder extends BroadcastReceiver {
-    static final String PREFS = "plex", CH = "recordatorio",
+    static final String PREFS = "plex", CH = "recordatorio", CH_RACHA = "racha",
         ACT = "co.plexplay.app.RECORDATORIO", ACT_LAST = "co.plexplay.app.ULTIMO_AVISO",
         ACT_SNOOZE = "co.plexplay.app.EN_UNA_HORA", ACT_AGAIN = "co.plexplay.app.OTRA_VEZ",
-        ACT_MIDNIGHT = "co.plexplay.app.MEDIANOCHE";
+        ACT_MIDNIGHT = "co.plexplay.app.MEDIANOCHE", ACT_TEST = "co.plexplay.app.PRUEBA";
+    static final int NOTIF = 1, MAX_AVISOS = 30;
 
-    /* {título, texto}; {n} = racha, {x} = XP que faltan, {name} = «Nombre, » o nada */
+    /* {título, texto}; {n} = racha, {n1} = racha de mañana, {x} = XP que faltan, {name} = «Nombre, » o nada */
     static final String[][] RACHA = {
         {"🔥 Tu racha de {n} está en peligro", "{name}Manzana te espera: 5 minutos de francés y la salvas."},
-        {"😿 Manzana está preocupada", "Tu racha de {n} se apaga a medianoche. Una lección corta y listo."},
+        {"😿 Manzana está preocupado", "Tu racha de {n} se apaga a medianoche. Una lección corta y listo."},
         {"🔥 {n} seguidos… ¿los dejamos ir?", "No hoy. Un reto rápido y tu racha sigue viva."},
-        {"⏳ Tic, tac, tu racha", "{name}una lección y mañana serán {n1} días. On y va ?"},
+        {"⏳ Tic, tac, tu racha", "{name}una lección y mañana serán {n1}. On y va ?"},
         {"🥐 Pausa de francés", "Manzana preparó tu lección del día. Tu racha de {n} te lo agradecerá."}
+    };
+    static final String[][] PROTEGIDA = {
+        {"🛡️ Tu protector salvó tu racha", "Ayer no practicaste y tu racha de {n} sigue viva. Hoy no hay otro: una lección y la mantienes."},
+        {"🛡️ Racha a salvo… por ahora", "{name}el protector cubrió el día que faltaste. Practica hoy para no perder tus {n}."}
     };
     static final String[][] ULTIMA = {
         {"🚨 Última oportunidad", "Tu racha de {n} termina a medianoche. ¡Todavía estás a tiempo!"},
@@ -49,6 +62,10 @@ public class Reminder extends BroadcastReceiver {
     static final String[][] CASI = {
         {"🎯 ¡Casi llegas!", "Te faltan {x} XP para tu meta de hoy. Un reto más y listo."},
         {"💪 Ya empezaste, termina", "Solo {x} XP para cumplir la meta. Manzana cree en ti."}
+    };
+    static final String[][] RECUPERA = {
+        {"🩹 Tu racha de {r} se puede recuperar", "{name}cumple la meta de hoy y Manzana la repara. Solo por {h}."},
+        {"💔→🔥 ¿Recuperamos tu racha?", "Perdiste {r} por poco. Hoy todavía puedes repararla: entra y mira cómo."}
     };
     static final String[][] PERDIDA = {
         {"💔 Se apagó tu racha", "Pasa en las mejores familias. Empieza una nueva hoy: Manzana te acompaña."},
@@ -71,6 +88,12 @@ public class Reminder extends BroadcastReceiver {
         "5 minutos de francés y Manzana queda feliz."
     };
 
+    /** lo que se va a avisar: tipo (para la bandeja y las pruebas), textos, a dónde lleva y por qué canal */
+    static class Aviso {
+        String tipo, titulo, texto, destino, canal;
+        Aviso(String tipo, String[] msg, String destino, String canal) { this.tipo = tipo; titulo = msg[0]; texto = msg[1]; this.destino = destino; this.canal = canal; }
+    }
+
     static void save(Context c, boolean on, int h, int m) {
         c.getSharedPreferences(PREFS, 0).edit().putBoolean("on", on).putInt("h", h).putInt("m", m).putBoolean("set", true).apply();
     }
@@ -82,7 +105,8 @@ public class Reminder extends BroadcastReceiver {
     }
     static String json(Context c) {
         SharedPreferences p = c.getSharedPreferences(PREFS, 0);
-        return "{\"on\":" + p.getBoolean("on", false) + ",\"set\":" + p.getBoolean("set", false) + ",\"h\":" + p.getInt("h", 19) + ",\"m\":" + p.getInt("m", 0) + "}";
+        return "{\"on\":" + p.getBoolean("on", false) + ",\"set\":" + p.getBoolean("set", false) + ",\"h\":" + p.getInt("h", 19) + ",\"m\":" + p.getInt("m", 0)
+            + ",\"proximo\":" + p.getLong("proximo", 0) + ",\"ultimo\":" + p.getLong("ultimoAviso", 0) + "}";
     }
     static PendingIntent pi(Context c, String action, int code) {
         return PendingIntent.getBroadcast(c, code, new Intent(c, Reminder.class).setAction(action),
@@ -91,90 +115,144 @@ public class Reminder extends BroadcastReceiver {
     static long next(int h, int m) {
         Calendar t = Calendar.getInstance();
         t.set(Calendar.HOUR_OF_DAY, h); t.set(Calendar.MINUTE, m); t.set(Calendar.SECOND, 0); t.set(Calendar.MILLISECOND, 0);
-        if (t.getTimeInMillis() <= System.currentTimeMillis() + 60000) t.add(Calendar.DAY_OF_YEAR, 1);
+        if (t.getTimeInMillis() <= System.currentTimeMillis() + 30000) t.add(Calendar.DAY_OF_YEAR, 1);
         return t.getTimeInMillis();
     }
+    /** una sola vez, y aunque el teléfono esté en reposo (no necesita el permiso de alarmas exactas) */
+    static void alarma(AlarmManager am, int tipo, long t, PendingIntent p) {
+        if (Build.VERSION.SDK_INT >= 23) am.setAndAllowWhileIdle(tipo, t, p); else am.set(tipo, t, p);
+    }
+
+    static void canales(Context c) {
+        if (Build.VERSION.SDK_INT < 26) return;
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm.getNotificationChannel(CH) == null) {
+            NotificationChannel ch = new NotificationChannel(CH, "Recordatorio diario", NotificationManager.IMPORTANCE_DEFAULT);
+            ch.setDescription("A la hora que elijas, si todavía no practicaste ese día.");
+            nm.createNotificationChannel(ch);
+        }
+        if (nm.getNotificationChannel(CH_RACHA) == null) {
+            NotificationChannel ch = new NotificationChannel(CH_RACHA, "Racha en peligro", NotificationManager.IMPORTANCE_HIGH);
+            ch.setDescription("Cuando tu racha se puede perder hoy, y la última oportunidad de la noche.");
+            nm.createNotificationChannel(ch);
+        }
+    }
+
     static void schedule(Context c) {
         AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
         SharedPreferences p = c.getSharedPreferences(PREFS, 0);
         am.cancel(pi(c, ACT, 7)); am.cancel(pi(c, ACT_LAST, 8)); am.cancel(pi(c, ACT_MIDNIGHT, 10));
-        // el widget cambia de día a medianoche (la llama se apaga si no has practicado)
-        am.setInexactRepeating(AlarmManager.RTC, next(0, 1), AlarmManager.INTERVAL_DAY, pi(c, ACT_MIDNIGHT, 10));
-        if (!p.getBoolean("on", false)) return;
+        canales(c);
+        // el widget cambia de día a medianoche (la llama se apaga si no has practicado); no despierta al teléfono
+        alarma(am, AlarmManager.RTC, next(0, 1), pi(c, ACT_MIDNIGHT, 10));
+        if (!p.getBoolean("on", false)) { p.edit().putLong("proximo", 0).apply(); return; }
         int h = p.getInt("h", 19), m = p.getInt("m", 0);
-        am.setInexactRepeating(AlarmManager.RTC_WAKEUP, next(h, m), AlarmManager.INTERVAL_DAY, pi(c, ACT, 7));
+        long t = next(h, m);
+        alarma(am, AlarmManager.RTC_WAKEUP, t, pi(c, ACT, 7));
         // último aviso de la noche, solo si el recordatorio principal es antes de las 21:00
-        if (h < 21) am.setInexactRepeating(AlarmManager.RTC_WAKEUP, next(21, 30), AlarmManager.INTERVAL_DAY, pi(c, ACT_LAST, 8));
+        if (h < 21) alarma(am, AlarmManager.RTC_WAKEUP, next(21, 30), pi(c, ACT_LAST, 8));
+        p.edit().putLong("proximo", t).apply();
     }
     static String today() { return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Calendar.getInstance().getTime()); }
-
-    /** días desde la última práctica (con algo de XP); -1 si no se sabe */
-    static int daysAway(SharedPreferences p) {
-        String last = p.getString("lastAny", "");
-        if (last.isEmpty()) last = p.getString("last", "");
-        if (last.isEmpty()) return -1;
-        try {
-            SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-            long a = f.parse(last).getTime(), b = f.parse(today()).getTime();
-            return (int) Math.round((b - a) / 86400000.0);
-        } catch (Exception e) { return -1; }
-    }
 
     static String[] pick(String[][] pool, int salt) {
         return pool[(int) (((System.currentTimeMillis() / 86400000L) + salt) % pool.length)];
     }
-    static String fill(String s, int streak, int falta, String name) {
-        return s.replace("{n1}", String.valueOf(streak + 1))
+    static String fill(String s, int streak, int falta, String name, int rota, String hasta) {
+        return s.replace("{n1}", (streak + 1) + " días")
                 .replace("{n}", streak + (streak == 1 ? " día" : " días"))
+                .replace("{r}", rota + (rota == 1 ? " día" : " días"))
+                .replace("{h}", hasta)
                 .replace("{x}", String.valueOf(falta))
                 .replace("{name}", name.isEmpty() ? "" : name + ", ");
     }
 
+    /** qué aviso toca ahora (null = ninguno). Es la misma regla para el recordatorio, el de la noche y «En 1 hora». */
+    static Aviso elegir(SharedPreferences p, boolean noche) {
+        if (!p.getBoolean("on", false)) return null;
+        if (Widget.doneToday(p)) return null;                 // ya cumplió la meta hoy: no hace falta recordarle nada
+        if (p.getBoolean("paused", false)) return null;       // se calló tras una semana; vuelve cuando abra la app
+        int streak = Widget.streakNow(p), away = Widget.diasDesde(p), xp = Widget.xpToday(p);
+        if (noche) return streak >= 1 ? new Aviso("ultima", pick(ULTIMA, 0), "leccion", CH_RACHA) : null;
+        if (xp > 0) return new Aviso("casi", pick(CASI, 0), "leccion", streak >= 1 ? CH_RACHA : CH);
+        if (streak >= 1) return Widget.protegida(p) ? new Aviso("protegida", pick(PROTEGIDA, 0), "leccion", CH_RACHA)
+                                                    : new Aviso("racha", pick(RACHA, 0), "leccion", CH_RACHA);
+        if (Widget.recuperable(p) > 0) return new Aviso("recupera", pick(RECUPERA, 0), "racha", CH_RACHA);
+        if (away >= 7) return new Aviso("semana", pick(SEMANA, 0), "leccion", CH);
+        if (away >= 2) return new Aviso("extrana", pick(EXTRANA, 0), "leccion", CH);
+        if (p.getInt("streak", 0) > 0 || away == 1) return new Aviso("perdida", pick(PERDIDA, 0), "leccion", CH);
+        String fr = p.getString("fr", ""), es = p.getString("es", ""), dia = DIA[(int) ((System.currentTimeMillis() / 86400000L) % DIA.length)];
+        return fr.isEmpty() ? new Aviso("dia", new String[]{"PLEX PLAY", dia}, "leccion", CH)
+                            : new Aviso("dia", new String[]{"📖 Palabra del día: " + fr, es + " · " + dia}, "palabra", CH);
+    }
+
     @Override public void onReceive(Context c, Intent i) {
         String a = i.getAction();
-        if (Intent.ACTION_BOOT_COMPLETED.equals(a) || "android.intent.action.MY_PACKAGE_REPLACED".equals(a)) { schedule(c); Widget.updateAll(c); return; }
-        if (ACT_MIDNIGHT.equals(a)) { Widget.updateAll(c); return; }
+        if (Intent.ACTION_BOOT_COMPLETED.equals(a) || "android.intent.action.MY_PACKAGE_REPLACED".equals(a)
+            || Intent.ACTION_TIME_CHANGED.equals(a) || Intent.ACTION_TIMEZONE_CHANGED.equals(a)) { schedule(c); Widget.updateAll(c); return; }
+        if (ACT_MIDNIGHT.equals(a)) { schedule(c); Widget.updateAll(c); return; }
         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
         if (ACT_SNOOZE.equals(a)) {
-            nm.cancel(1);
-            AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
-            am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 3600000L, pi(c, ACT_AGAIN, 9));
+            nm.cancel(NOTIF);
+            alarma((AlarmManager) c.getSystemService(Context.ALARM_SERVICE), AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 3600000L, pi(c, ACT_AGAIN, 9));
             return;
         }
+        // la alarma diaria es de una sola vez: se deja programada la de mañana antes de cualquier otra cosa
+        if (ACT.equals(a) || ACT_LAST.equals(a)) schedule(c);
         SharedPreferences p = c.getSharedPreferences(PREFS, 0);
-        if (!p.getBoolean("on", false)) return;
-        // ya cumplió la meta hoy: no hace falta recordarle nada
-        if (today().equals(p.getString("last", ""))) return;
-        if (p.getBoolean("paused", false)) return;   // se calló tras una semana; vuelve cuando abra la app
+        boolean noche = ACT_LAST.equals(a);
+        Aviso av;
+        if (ACT_TEST.equals(a)) {
+            // solo en la versión de pruebas (MainActivity.esPrueba): fuerza un tipo concreto para verlo en pantalla
+            String tipo = i.getStringExtra("tipo");
+            av = elegir(p, "ultima".equals(tipo));
+            if (av == null) av = new Aviso("dia", new String[]{"PLEX PLAY", DIA[0]}, "leccion", CH);
+        } else av = elegir(p, noche);
+        if (av == null) return;
+        if ("semana".equals(av.tipo)) p.edit().putBoolean("paused", true).apply();
+        mostrar(c, nm, p, av, !noche);
+    }
 
-        int streak = Widget.streakNow(p), away = daysAway(p), xp = Widget.xpToday(p), goal = Math.max(1, p.getInt("goal", 20));
-        boolean last = ACT_LAST.equals(a);
-        if (last && streak < 1) return;   // el aviso nocturno es solo para proteger rachas
-        String name = p.getString("name", "");
-        String[] msg;
-        if (last) msg = pick(ULTIMA, 0);
-        else if (xp > 0) msg = pick(CASI, 0);
-        else if (streak >= 1) msg = pick(RACHA, 0);
-        else if (away >= 7) { msg = pick(SEMANA, 0); p.edit().putBoolean("paused", true).apply(); }
-        else if (away >= 2) msg = pick(EXTRANA, 0);
-        else if (away == 1 || p.getInt("streak", 0) > 0) msg = pick(PERDIDA, 0);
-        else {
-            String fr = p.getString("fr", ""), es = p.getString("es", "");
-            msg = fr.isEmpty() ? new String[]{"PLEX PLAY", DIA[(int) ((System.currentTimeMillis() / 86400000L) % DIA.length)]}
-                               : new String[]{"📖 Palabra del día: " + fr, es + " · " + DIA[(int) ((System.currentTimeMillis() / 86400000L) % DIA.length)]};
-        }
-        String title = fill(msg[0], streak, Math.max(1, goal - xp), name), text = fill(msg[1], streak, Math.max(1, goal - xp), name);
-
-        if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CH) == null)
-            nm.createNotificationChannel(new NotificationChannel(CH, "Recordatorio diario", NotificationManager.IMPORTANCE_DEFAULT));
-        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, CH) : new Notification.Builder(c);
+    static void mostrar(Context c, NotificationManager nm, SharedPreferences p, Aviso av, boolean snooze) {
+        int streak = Widget.streakNow(p), goal = Math.max(1, p.getInt("goal", 20)), falta = Math.max(1, goal - Widget.xpToday(p));
+        int rota = Widget.recuperable(p);
+        String name = p.getString("name", ""), hasta = Widget.recuperaHasta(p);
+        String title = fill(av.titulo, streak, falta, name, rota, hasta), text = fill(av.texto, streak, falta, name, rota, hasta);
+        canales(c);
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, av.canal) : new Notification.Builder(c);
         b.setSmallIcon(R.drawable.ic_notif).setContentTitle(title).setContentText(text)
          .setStyle(new Notification.BigTextStyle().bigText(text))
-         .setContentIntent(Widget.open(c, false, 30)).setAutoCancel(true).setColor(0xFFD7263D);
-        Bitmap manzana = BitmapFactory.decodeResource(c.getResources(), R.mipmap.ic_launcher_fg);
+         .setContentIntent(Widget.abrir(c, av.destino, 30)).setAutoCancel(true).setColor(0xFF2F6BFF)
+         .setCategory(Notification.CATEGORY_REMINDER).setShowWhen(true).setWhen(System.currentTimeMillis());
+        if (Build.VERSION.SDK_INT < 26) b.setPriority(CH_RACHA.equals(av.canal) ? Notification.PRIORITY_HIGH : Notification.PRIORITY_DEFAULT);
+        Bitmap manzana = BitmapFactory.decodeResource(c.getResources(), Widget.poseAviso(c, av.tipo));
         if (manzana != null) b.setLargeIcon(manzana);
-        b.addAction(new Notification.Action.Builder(null, "▶ Practicar", Widget.open(c, true, 31)).build());
-        if (!last) b.addAction(new Notification.Action.Builder(null, "⏰ En 1 hora", pi(c, ACT_SNOOZE, 32)).build());
-        try { nm.notify(1, b.build()); } catch (SecurityException e) { /* sin permiso de notificaciones */ }
+        String btn = "racha".equals(av.destino) ? "🩹 Recuperar" : "▶ Practicar";
+        b.addAction(new Notification.Action.Builder(null, btn, Widget.abrir(c, "racha".equals(av.destino) ? "racha" : "practicar", 31)).build());
+        if (snooze) b.addAction(new Notification.Action.Builder(null, "⏰ En 1 hora", pi(c, ACT_SNOOZE, 32)).build());
+        guardar(c, av.tipo, title, text, av.destino);
+        try { nm.notify(NOTIF, b.build()); } catch (SecurityException e) { /* sin permiso de notificaciones */ }
+    }
+
+    /* ---------- bandeja: lo que se avisó, para mostrarlo en la app con leído/no leído ---------- */
+    static synchronized void guardar(Context c, String tipo, String ti, String tx, String destino) {
+        SharedPreferences p = c.getSharedPreferences(PREFS, 0);
+        try {
+            JSONArray viejo = new JSONArray(p.getString("avisos", "[]")), nuevo = new JSONArray();
+            long t = System.currentTimeMillis();
+            nuevo.put(new JSONObject().put("id", "a" + t).put("t", t).put("tipo", tipo).put("ti", ti).put("tx", tx).put("d", destino).put("leido", false));
+            for (int k = 0; k < viejo.length() && nuevo.length() < MAX_AVISOS; k++) nuevo.put(viejo.get(k));
+            p.edit().putString("avisos", nuevo.toString()).putLong("ultimoAviso", t).apply();
+        } catch (Exception e) { /* bandeja dañada: se empieza de nuevo */ p.edit().putString("avisos", "[]").apply(); }
+    }
+    static String avisos(Context c) { return c.getSharedPreferences(PREFS, 0).getString("avisos", "[]"); }
+    /** id = uno; "*" = todos */
+    static synchronized void leido(Context c, String id) {
+        SharedPreferences p = c.getSharedPreferences(PREFS, 0);
+        try {
+            JSONArray a = new JSONArray(p.getString("avisos", "[]"));
+            for (int k = 0; k < a.length(); k++) { JSONObject o = a.getJSONObject(k); if ("*".equals(id) || id.equals(o.optString("id"))) o.put("leido", true); }
+            p.edit().putString("avisos", a.toString()).apply();
+        } catch (Exception e) { /* nada */ }
     }
 }

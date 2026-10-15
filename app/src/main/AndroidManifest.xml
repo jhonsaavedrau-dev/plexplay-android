@@ -50,6 +50,8 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
                 <action android:name="co.plexplay.app.RECORDATORIO" />
             </intent-filter>
         </receiver>
@@ -73,6 +75,10 @@
         <receiver android:name=".Widget$Meta" android:exported="true" android:label="@string/widget_meta">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_meta_info" />
+        </receiver>
+        <receiver android:name=".Widget$Duelo" android:exported="true" android:label="@string/widget_duelo">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_duelo_info" />
         </receiver>
     </application>
 </manifest>

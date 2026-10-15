@@ -48,6 +48,9 @@ public class MainActivity extends Activity {
     static final int REQ_MIC = 11, REQ_NOTIF = 12, REQ_SPEECH = 13, REQ_MIC_ONLY = 14;
     /** abierta desde «Practicar» (notificación o widget): al cargar, la página abre la siguiente lección */
     static final String EXTRA_PRACTICAR = "practicar";
+    /** 1.8: abierta desde un aviso o un widget que lleva a una pantalla concreta: racha, palabra, 1v1, avisos */
+    static final String EXTRA_DESTINO = "destino";
+    String destinoPendiente = null;
     boolean practicarPendiente = false;
     WebView web;
     SpeechRecognizer rec;
@@ -97,19 +100,23 @@ public class MainActivity extends Activity {
                 /* entrar.html (acceso con Google desde la página de PLEX PLAY) se abre en el navegador: Google no deja entrar en un WebView */
                 boolean entrar = u.getPath() != null && u.getPath().endsWith("/entrar.html");
                 if ("https".equals(u.getScheme()) && (HOST.equals(u.getHost()) || HOST_VIEJO.equals(u.getHost())) && !entrar) return false;
+                if (esPrueba() && "10.0.2.2".equals(u.getHost())) return false;
                 try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception e) { /* sin app para abrirlo */ }
                 return true;
             }
             @Override public void onPageFinished(WebView v, String url) {
-                if (practicarPendiente && url != null && url.startsWith("https:")) { practicarPendiente = false; practicar(2500); }
+                boolean pagina = url != null && (url.startsWith("https:") || (esPrueba() && url.startsWith("http:")));
+                if (practicarPendiente && pagina) { practicarPendiente = false; practicar(2500); }
+                if (destinoPendiente != null && pagina) { String d = destinoPendiente; destinoPendiente = null; destino(d, 2500); }
             }
             @Override public void onReceivedError(WebView v, WebResourceRequest r, WebResourceError e) {
                 if (r.isForMainFrame()) v.loadUrl("file:///android_asset/offline.html");
             }
         });
         practicarPendiente = getIntent() != null && getIntent().getBooleanExtra(EXTRA_PRACTICAR, false);
+        destinoPendiente = getIntent() != null ? getIntent().getStringExtra(EXTRA_DESTINO) : null;
         if (esRetorno(getIntent())) abrirRetorno(getIntent());
-        else if (saved != null) web.restoreState(saved); else web.loadUrl(HOME);
+        else if (saved != null) web.restoreState(saved); else web.loadUrl(inicio());
         /* lo que no hace falta para pintar la página va después: antes el widget (5 dibujos), el recordatorio y el motor
            de voz se preparaban en el hilo principal mientras la WebView arrancaba */
         web.postDelayed(() -> { if (isFinishing()) return; Reminder.schedule(this); Widget.updateAll(this); iniciaVoz(); }, 2500);
@@ -165,8 +172,10 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void setReminder(boolean on, int hour, int minute) {
             Reminder.save(MainActivity.this, on, hour, minute);
             runOnUiThread(() -> {
-                if (on && Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+                if (on && Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    prefs().edit().putBoolean("notifAsked", true).apply();
                     requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIF);
+                }
                 Reminder.schedule(MainActivity.this);
             });
         }
@@ -185,7 +194,31 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void ttsStop() { if (tts != null) tts.stop(); }
         /** datos del widget y de los avisos (plx68.js): racha, XP de hoy, meta, palabra del día… */
         @JavascriptInterface public void setWidget(String json) { if (json != null) Widget.save(MainActivity.this, json); }
-        @JavascriptInterface public int bridgeVersion() { return 7; }
+        @JavascriptInterface public int bridgeVersion() { return 8; }
+        /* ---- 1.8: avisos ---- */
+        /** lo que Manzana avisó (JSON: [{id, t, tipo, ti, tx, d, leido}]), el más nuevo primero */
+        @JavascriptInterface public String avisos() { return Reminder.avisos(MainActivity.this); }
+        /** marca un aviso como leído ("*" = todos) */
+        @JavascriptInterface public void avisoLeido(String id) { if (id != null) Reminder.leido(MainActivity.this, id); }
+        /** {permiso: granted|denied|prompt, canal: el diario activo, racha: «Racha en peligro» activo, proximo: ms} */
+        @JavascriptInterface public String notifEstado() { return MainActivity.this.notifEstado(); }
+        /** pide el permiso (Android 13+); si ya lo negó y Android no deja volver a preguntar, abre los ajustes de notificaciones */
+        @JavascriptInterface public void pedirNotif() {
+            runOnUiThread(() -> {
+                boolean falta = Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED;
+                if (falta && (!prefs().getBoolean("notifAsked", false) || shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS))) {
+                    prefs().edit().putBoolean("notifAsked", true).apply();
+                    requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIF);
+                } else ajustesNotif();
+            });
+        }
+        @JavascriptInterface public void ajustesNotificaciones() { runOnUiThread(MainActivity.this::ajustesNotif); }
+        /** solo en la versión de pruebas: muestra ya el aviso que tocaría (para revisar textos, botones y destinos) */
+        @JavascriptInterface public boolean probarAviso(String tipo) {
+            if (!esPrueba()) return false;
+            sendBroadcast(new Intent(MainActivity.this, Reminder.class).setAction(Reminder.ACT_TEST).putExtra("tipo", tipo == null ? "" : tipo));
+            return true;
+        }
         @JavascriptInterface public String appVersion() { try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return "?"; } }
     }
 
@@ -298,15 +331,17 @@ public class MainActivity extends Activity {
                 pendingWebPerm = null;
             }
         }
-        if (code == REQ_NOTIF) js("window.__plexNotif&&window.__plexNotif(" + ok + ")");
+        if (code == REQ_NOTIF) { Reminder.canales(this); js("window.__plexNotif&&window.__plexNotif(" + ok + ")"); js("window.__plexNotifEstado&&window.__plexNotifEstado(" + notifEstado() + ")"); }
     }
 
     @Override protected void onResume() {
         super.onResume();
         /* 4.47: la página vuelve a correr (se pausa en onPause) */
         if (web != null) { web.onResume(); web.resumeTimers(); }
-        // al volver de Ajustes, avisar a la página si ya hay permiso
-        if (web != null) micCallback(micStatus());
+        // al volver de Ajustes, avisar a la página si ya hay permiso (micrófono y notificaciones)
+        if (web != null) { micCallback(micStatus()); js("window.__plexNotifEstado&&window.__plexNotifEstado(" + notifEstado() + ")"); }
+        // abrir la app retira el aviso del sistema (en la bandeja de la app queda como no leído hasta que lo vea)
+        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(Reminder.NOTIF);
     }
 
     /* ---------- entrar con Google ----------
@@ -325,6 +360,7 @@ public class MainActivity extends Activity {
         setIntent(intent);
         if (esRetorno(intent) && web != null) abrirRetorno(intent);
         else if (intent.getBooleanExtra(EXTRA_PRACTICAR, false) && web != null) practicar(300);
+        else if (intent.getStringExtra(EXTRA_DESTINO) != null && web != null) destino(intent.getStringExtra(EXTRA_DESTINO), 300);
     }
 
     /** abre la siguiente lección (la página define window.__plexPracticar en plx68.js) */
@@ -333,11 +369,50 @@ public class MainActivity extends Activity {
         web.postDelayed(() -> web.evaluateJavascript("window.__plexPracticar&&window.__plexPracticar()", null), delay);
     }
 
+    /** abre una pantalla de la página (plx117.js define window.__plexAbrir): racha, palabra, 1v1, avisos */
+    void destino(String d, long delay) {
+        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(Reminder.NOTIF);
+        String seguro = d.replaceAll("[^a-z0-9]", "");
+        web.postDelayed(() -> web.evaluateJavascript("window.__plexAbrir&&window.__plexAbrir('" + seguro + "')", null), delay);
+    }
+
+    String notifEstado() {
+        boolean permiso = Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        boolean app = nm.areNotificationsEnabled(), canal = true, racha = true;
+        if (Build.VERSION.SDK_INT >= 26) {
+            android.app.NotificationChannel a = nm.getNotificationChannel(Reminder.CH), b = nm.getNotificationChannel(Reminder.CH_RACHA);
+            canal = a == null || a.getImportance() != NotificationManager.IMPORTANCE_NONE;
+            racha = b == null || b.getImportance() != NotificationManager.IMPORTANCE_NONE;
+        }
+        String p = permiso && app ? "granted" : (Build.VERSION.SDK_INT >= 33 && !prefs().getBoolean("notifAsked", false) ? "prompt" : "denied");
+        return "{\"permiso\":\"" + p + "\",\"canal\":" + canal + ",\"racha\":" + racha + ",\"proximo\":" + prefs().getLong("proximo", 0) + ",\"prueba\":" + esPrueba() + "}";
+    }
+    void ajustesNotif() {
+        Intent i;
+        if (Build.VERSION.SDK_INT >= 26) i = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+        else i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", getPackageName(), null));
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try { startActivity(i); } catch (Exception e) { /* nada */ }
+    }
+
+    /* ---------- versión de pruebas (debug): abre la página de un servidor local con «adb shell am start … -e casa URL» ---------- */
+    boolean esPrueba() { return (getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0; }
+    String inicio() {
+        if (esPrueba()) {
+            String casa = getIntent() != null ? getIntent().getStringExtra("casa") : null;
+            if (casa != null) prefs().edit().putString("casa", casa).apply();
+            casa = prefs().getString("casa", "");
+            if (!casa.isEmpty()) return casa;
+        }
+        return HOME;
+    }
+
     @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); web.saveState(out); }
 
     @Override public void onBackPressed() {
         String u = web.getUrl();
-        if (u != null && u.startsWith("file:")) { web.loadUrl(HOME); return; }
+        if (u != null && u.startsWith("file:")) { web.loadUrl(inicio()); return; }
         /* la página (plx101, 4.45) sabe cerrar lo que esté encima: juego (pausa), Quiz, diagnóstico, ventanas, lección… */
         web.evaluateJavascript("(function(){try{if(window.__plexAtras&&window.__plexAtras())return 'capa';}catch(e){}try{var t=document.querySelector('.tour [data-tour=skip],.tour [data-tour=lessons]');if(t){t.click();return 'tour';}"
             + "var m=document.querySelector('.gmodal [data-g=close],.gmodal .gm-x');if(m){m.click();return 'modal';}"

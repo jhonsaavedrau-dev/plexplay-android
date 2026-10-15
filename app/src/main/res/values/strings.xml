@@ -10,4 +10,6 @@
     <string name="widget_leccion_desc">Tu siguiente lección, lista para empezar con un toque.</string>
     <string name="widget_meta">Meta de hoy</string>
     <string name="widget_meta_desc">Los XP de hoy contra tu meta diaria.</string>
+    <string name="widget_duelo">PLEX 1V1</string>
+    <string name="widget_duelo_desc">Tus copas y tu rango, y un toque para buscar rival.</string>
 </resources>

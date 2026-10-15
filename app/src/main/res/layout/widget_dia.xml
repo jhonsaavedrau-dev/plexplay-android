@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Mi día (4x2): Manzana estudiando, racha, meta de XP, palabra del día y Practicar -->
+<!-- Mi día (4x2), 1.8: Manzana, saludo, racha, meta de XP, la semana y «Practicar» -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent"
-    android:background="@drawable/widget_bg" android:gravity="center_vertical" android:orientation="horizontal" android:padding="12dp">
-    <ImageView android:id="@+id/w_mz" android:layout_width="104dp" android:layout_height="match_parent" android:adjustViewBounds="true"
-        android:contentDescription="Manzana" android:scaleType="fitCenter" android:src="@drawable/w_mz_estudia" />
-    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginLeft="10dp" android:layout_weight="1" android:orientation="vertical">
+    android:background="@drawable/w8_azul" android:gravity="center_vertical" android:orientation="horizontal" android:paddingLeft="2dp" android:paddingRight="12dp" android:paddingTop="10dp" android:paddingBottom="10dp">
+    <ImageView android:id="@+id/w_mz" android:layout_width="128dp" android:layout_height="match_parent" android:layout_marginBottom="-16dp" android:layout_marginTop="-4dp" android:adjustViewBounds="true"
+        android:contentDescription="Manzana" android:scaleType="fitEnd" android:src="@drawable/w2_escribiendo" />
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginLeft="6dp" android:layout_weight="1" android:orientation="vertical">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
             <TextView android:id="@+id/w_hola" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:ellipsize="end" android:maxLines="1"
-                android:text="Bonjour !" android:textColor="#FFFFFFFF" android:textSize="15sp" android:textStyle="bold" />
+                android:text="Bonjour !" android:textColor="#FFFFFFFF" android:textSize="16sp" android:textStyle="bold" />
             <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/widget_pill" android:gravity="center_vertical"
-                android:orientation="horizontal" android:paddingLeft="8dp" android:paddingTop="2dp" android:paddingRight="10dp" android:paddingBottom="2dp">
+                android:orientation="horizontal" android:paddingLeft="7dp" android:paddingTop="2dp" android:paddingRight="9dp" android:paddingBottom="2dp">
                 <ImageView android:id="@+id/w_fuego" android:layout_width="16dp" android:layout_height="16dp" android:contentDescription="Racha" android:src="@drawable/ic_flame_off" />
                 <TextView android:id="@+id/w_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginLeft="3dp"
                     android:text="0" android:textColor="#FFFFFFFF" android:textSize="14sp" android:textStyle="bold" />
@@ -18,22 +18,19 @@
                     android:text="días" android:textColor="#CCFFFFFF" android:textSize="11sp" />
             </LinearLayout>
         </LinearLayout>
-        <TextView android:id="@+id/w_meta" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp"
-            android:text="Meta de hoy · 0/20 XP" android:textColor="#E6FFFFFF" android:textSize="12sp" android:textStyle="bold" />
+        <TextView android:id="@+id/w_meta" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:maxLines="1" android:ellipsize="end"
+            android:text="Meta de hoy · 0/20 XP" android:textColor="#E6FFFFFF" android:textSize="11.5sp" android:textStyle="bold" />
         <ProgressBar android:id="@+id/w_barra" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="match_parent" android:layout_height="8dp"
             android:layout_marginTop="4dp" android:max="20" android:progress="0" android:progressDrawable="@drawable/widget_barra" />
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp"
-            android:text="PALABRA DEL DÍA" android:textColor="#99FFFFFF" android:textSize="9sp" android:textStyle="bold" />
-        <TextView android:id="@+id/w_fr" android:layout_width="wrap_content" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1"
-            android:text="le quotidien" android:textColor="#FFFFFFFF" android:textSize="17sp" android:textStyle="bold" />
-        <TextView android:id="@+id/w_es" android:layout_width="wrap_content" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1"
-            android:text="el día a día" android:textColor="#DDFFFFFF" android:textSize="12sp" />
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:gravity="center_vertical" android:orientation="horizontal">
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp">
+            <LinearLayout android:id="@+id/w_semana" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal"><TextView android:id="@+id/w_d0" android:layout_width="19dp" android:layout_height="19dp" android:layout_marginRight="4dp" android:background="@drawable/w8_dia_nada" android:gravity="center" android:text="L" android:textColor="#FFFFFFFF" android:textSize="9sp" android:textStyle="bold" /><TextView android:id="@+id/w_d1" android:layout_width="19dp" android:layout_height="19dp" android:layout_marginRight="4dp" android:background="@drawable/w8_dia_nada" android:gravity="center" android:text="M" android:textColor="#FFFFFFFF" android:textSize="9sp" android:textStyle="bold" /><TextView android:id="@+id/w_d2" android:layout_width="19dp" android:layout_height="19dp" android:layout_marginRight="4dp" android:background="@drawable/w8_dia_nada" android:gravity="center" android:text="M" android:textColor="#FFFFFFFF" android:textSize="9sp" android:textStyle="bold" /><TextView android:id="@+id/w_d3" android:layout_width="19dp" android:layout_height="19dp" android:layout_marginRight="4dp" android:background="@drawable/w8_dia_nada" android:gravity="center" android:text="J" android:textColor="#FFFFFFFF" android:textSize="9sp" android:textStyle="bold" /><TextView android:id="@+id/w_d4" android:layout_width="19dp" android:layout_height="19dp" android:layout_marginRight="4dp" android:background="@drawable/w8_dia_nada" android:gravity="center" android:text="V" android:textColor="#FFFFFFFF" android:textSize="9sp" android:textStyle="bold" /><TextView android:id="@+id/w_d5" android:layout_width="19dp" android:layout_height="19dp" android:layout_marginRight="4dp" android:background="@drawable/w8_dia_nada" android:gravity="center" android:text="S" android:textColor="#FFFFFFFF" android:textSize="9sp" android:textStyle="bold" /><TextView android:id="@+id/w_d6" android:layout_width="19dp" android:layout_height="19dp" android:layout_marginRight="0dp" android:background="@drawable/w8_dia_nada" android:gravity="center" android:text="D" android:textColor="#FFFFFFFF" android:textSize="9sp" android:textStyle="bold" /></LinearLayout>
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:gravity="center_vertical" android:orientation="horizontal">
             <TextView android:id="@+id/w_btn" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/widget_btn"
-                android:paddingLeft="14dp" android:paddingTop="5dp" android:paddingRight="14dp" android:paddingBottom="5dp"
+                android:paddingLeft="14dp" android:paddingTop="6dp" android:paddingRight="14dp" android:paddingBottom="6dp"
                 android:text="▶ Practicar" android:textColor="#FF1F2430" android:textSize="13sp" android:textStyle="bold" />
             <TextView android:id="@+id/w_next" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginLeft="8dp" android:layout_weight="1"
-                android:ellipsize="end" android:maxLines="1" android:textColor="#99FFFFFF" android:textSize="10sp" android:visibility="gone" />
+                android:ellipsize="end" android:maxLines="2" android:textColor="#CCFFFFFF" android:textSize="10.5sp" android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

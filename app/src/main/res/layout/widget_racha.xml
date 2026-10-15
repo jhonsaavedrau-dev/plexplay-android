@@ -1,24 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Racha (2x2), al estilo Duolingo: fondo según el estado, Manzana diciendo algo en un bocadillo y el número grande.
-     Los estados (celebración, hitos, «¿Tienes 3 minutos?», «¡Salva tu racha!», «¡Es tarde!», «¿Me estás ignorando?»…)
-     los elige Widget.estado, con la misma tabla que la app (plx71.js). -->
+<!-- Racha (2x2), 1.8: Manzana grande según tu día, bocadillo, el número con la llama y los 7 días de la semana.
+     Los estados los elige Widget.estado (misma tabla que la app, plx71.js + plx117.js). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent"
     android:background="@drawable/wr_cielo" android:padding="10dp">
-    <ImageView android:id="@+id/w_mz" android:layout_width="84dp" android:layout_height="84dp" android:layout_gravity="bottom|end"
-        android:layout_marginEnd="-6dp" android:layout_marginBottom="-8dp" android:adjustViewBounds="true" android:scaleType="fitEnd"
-        android:contentDescription="Manzana" android:src="@drawable/w_rz_sentado" />
+    <ImageView android:id="@+id/w_mz" android:layout_width="88dp" android:layout_height="100dp" android:layout_gravity="bottom|end"
+        android:layout_marginEnd="-12dp" android:layout_marginBottom="-12dp" android:adjustViewBounds="true" android:scaleType="fitEnd"
+        android:contentDescription="Manzana" android:src="@drawable/w2_saludar" />
     <TextView android:id="@+id/w_msg" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="top|start"
-        android:background="@drawable/wr_bocadillo" android:paddingLeft="9dp" android:paddingTop="5dp" android:paddingRight="9dp" android:paddingBottom="6dp"
-        android:maxLines="3" android:ellipsize="end" android:text="Cargando…" android:textColor="#FF1F2430" android:textSize="12.5sp" android:textStyle="bold" />
+        android:maxWidth="136dp" android:background="@drawable/wr_bocadillo" android:paddingLeft="9dp" android:paddingTop="5dp" android:paddingRight="9dp" android:paddingBottom="6dp"
+        android:maxLines="3" android:ellipsize="end" android:text="Cargando…" android:textColor="#FF1F2430" android:textSize="12sp" android:textStyle="bold" />
     <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="bottom|start" android:orientation="vertical">
         <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
-            <ImageView android:id="@+id/w_fuego" android:layout_width="22dp" android:layout_height="22dp" android:contentDescription="Racha" android:src="@drawable/ic_flame" />
-            <TextView android:id="@+id/w_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginLeft="3dp"
-                android:text="" android:textColor="#FFFFFFFF" android:textSize="34sp" android:textStyle="bold"
-                android:shadowColor="#40000000" android:shadowDy="2" android:shadowRadius="1" />
+            <ImageView android:id="@+id/w_fuego" android:layout_width="24dp" android:layout_height="24dp" android:contentDescription="Racha" android:src="@drawable/ic_flame" />
+            <TextView android:id="@+id/w_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginLeft="2dp"
+                android:text="" android:textColor="#FFFFFFFF" android:textSize="36sp" android:textStyle="bold" android:includeFontPadding="false" android:shadowColor="#40000000" android:shadowDy="2" android:shadowRadius="2" />
         </LinearLayout>
         <TextView android:id="@+id/w_lbl" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="92dp"
             android:text="" android:textColor="#F2FFFFFF" android:textSize="11sp" android:textStyle="bold" />
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp">
+            <LinearLayout android:id="@+id/w_semana" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal"><TextView android:id="@+id/w_d0" android:layout_width="7dp" android:layout_height="7dp" android:layout_marginRight="2.5dp" android:background="@drawable/w8_dia_nada" android:gravity="center" android:text="" android:textColor="#FFFFFFFF" android:textSize="9sp" android:textStyle="bold" /><TextView android:id="@+id/w_d1" android:layout_width="7dp" android:layout_height="7dp" android:layout_marginRight="2.5dp" android:background="@drawable/w8_dia_nada" android:gravity="center" android:text="" android:textColor="#FFFFFFFF" android:textSize="9sp" android:textStyle="bold" /><TextView android:id="@+id/w_d2" android:layout_width="7dp" android:layout_height="7dp" android:layout_marginRight="2.5dp" android:background="@drawable/w8_dia_nada" android:gravity="center" android:text="" android:textColor="#FFFFFFFF" android:textSize="9sp" android:textStyle="bold" /><TextView android:id="@+id/w_d3" android:layout_width="7dp" android:layout_height="7dp" android:layout_marginRight="2.5dp" android:background="@drawable/w8_dia_nada" android:gravity="center" android:text="" android:textColor="#FFFFFFFF" android:textSize="9sp" android:textStyle="bold" /><TextView android:id="@+id/w_d4" android:layout_width="7dp" android:layout_height="7dp" android:layout_marginRight="2.5dp" android:background="@drawable/w8_dia_nada" android:gravity="center" android:text="" android:textColor="#FFFFFFFF" android:textSize="9sp" android:textStyle="bold" /><TextView android:id="@+id/w_d5" android:layout_width="7dp" android:layout_height="7dp" android:layout_marginRight="2.5dp" android:background="@drawable/w8_dia_nada" android:gravity="center" android:text="" android:textColor="#FFFFFFFF" android:textSize="9sp" android:textStyle="bold" /><TextView android:id="@+id/w_d6" android:layout_width="7dp" android:layout_height="7dp" android:layout_marginRight="0dp" android:background="@drawable/w8_dia_nada" android:gravity="center" android:text="" android:textColor="#FFFFFFFF" android:textSize="9sp" android:textStyle="bold" /></LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 </FrameLayout>

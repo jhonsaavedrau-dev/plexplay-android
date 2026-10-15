@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solo la versión de pruebas (assembleDebug): deja probar los avisos con adb y abrir la página de un servidor local -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <application android:networkSecurityConfig="@xml/red_pruebas" tools:ignore="UnusedAttribute">
+        <activity android:name=".VistaWidgets" android:exported="true" android:label="Vista de widgets" />
+        <receiver android:name=".Reminder" android:exported="true" tools:replace="android:exported" />
+    </application>
+</manifest>
